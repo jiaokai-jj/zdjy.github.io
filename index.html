@@ -1131,193 +1131,270 @@
     </div>
 
     <script>
-                                // ============ SPHERE → DIFFUSION PARTICLE SYSTEM ============
+                                        // ============ BUTTERFLY PARTICLE SYSTEM ============
         (function() {
             var canvas = document.getElementById('bgCanvas');
             if (!canvas) return;
             var ctx = canvas.getContext('2d');
-            var w, h, cx, cy, sphereR;
+            var w, h, cx, cy, scale;
             var time = 0;
             var currentSpread = 0;
             var targetSpread = 0;
             
-            var palette = [
-                [80, 180, 255], [120, 140, 250], [160, 100, 250],
-                [60, 210, 230], [200, 130, 250], [40, 160, 245],
-                [240, 170, 90], [100, 90, 240], [70, 200, 210],
-                [180, 150, 250], [50, 190, 240], [140, 110, 250],
+            // Gradients for beautiful butterfly colors
+            var wingPalette = [
+                [100, 160, 255],  // blue
+                [140, 120, 250],  // periwinkle
+                [80, 200, 240],   // cyan
+                [180, 100, 240],  // purple
+                [60, 180, 255],   // sky blue
+                [200, 140, 250],  // lavender
+                [120, 200, 250],  // light blue
+                [160, 150, 250],  // lilac
+            ];
+            
+            var trailPalette = [
+                [255, 180, 120],  // warm peach
+                [255, 200, 150],  // gold
+                [240, 160, 200],  // pink
+                [220, 180, 250],  // light purple
             ];
             
             var particles = [];
-            var ambientDust = [];
-            var sphereCount = 80;
-            var dustCount = 35;
+            var trails = [];
+            var bodyParticles = [];
+            var totalWing = 120;
+            var totalBody = 10;
+            var totalTrail = 60;
+            var maxTrailLength = 8;
             
-            function createSpherePoints(count) {
-                var points = [];
-                var phi = Math.PI * (3 - Math.sqrt(5));
-                for (var i = 0; i < count; i++) {
-                    var y = 1 - (i / (count - 1)) * 2;
-                    var radiusAtY = Math.sqrt(1 - y * y);
-                    var theta = phi * i;
-                    points.push({
-                        x: Math.cos(theta) * radiusAtY,
-                        y: y,
-                        z: Math.sin(theta) * radiusAtY,
-                    });
-                }
-                return points;
+            // Butterfly wing shapes defined as relative ellipses
+            // Format: [cx, cy, rx, ry] (relative to center, in normalized coords)
+            var wingDefs = [
+                // Upper left wing
+                { cx: -0.32, cy: -0.10, rx: 0.38, ry: 0.28, id: 'ul' },
+                // Upper right wing
+                { cx: 0.32, cy: -0.10, rx: 0.38, ry: 0.28, id: 'ur' },
+                // Lower left wing
+                { cx: -0.22, cy: 0.22, rx: 0.24, ry: 0.18, id: 'll' },
+                // Lower right wing
+                { cx: 0.22, cy: 0.22, rx: 0.24, ry: 0.18, id: 'lr' },
+            ];
+            
+            function randomInEllipse(cx, cy, rx, ry) {
+                var angle = Math.random() * Math.PI * 2;
+                var r = Math.sqrt(Math.random());
+                return {
+                    x: cx + Math.cos(angle) * rx * r,
+                    y: cy + Math.sin(angle) * ry * r,
+                };
             }
-            
-            var spherePoints = createSpherePoints(sphereCount);
             
             function initParticles() {
                 particles = [];
-                for (var i = 0; i < sphereCount; i++) {
-                    var sp = spherePoints[i];
-                    var color = palette[Math.floor(Math.random() * palette.length)];
-                    particles.push({
-                        sphereX: sp.x, sphereY: sp.y, sphereZ: sp.z,
-                        color: color,
-                        size: 1.2 + Math.random() * 3.0,
-                        pulse: Math.random() * Math.PI * 2,
-                        pulseSpeed: 0.015 + Math.random() * 0.04,
-                        jitterX: 0, jitterY: 0, jitterZ: 0,
+                bodyParticles = [];
+                
+                // Wing particles
+                var perWing = Math.floor(totalWing / 4);
+                for (var w = 0; w < wingDefs.length; w++) {
+                    var def = wingDefs[w];
+                    for (var i = 0; i < perWing; i++) {
+                        var pos = randomInEllipse(def.cx, def.cy, def.rx, def.ry);
+                        particles.push({
+                            wingId: def.id,
+                            baseX: pos.x,
+                            baseY: pos.y,
+                            baseRX: def.rx,
+                            baseRY: def.ry,
+                            color: wingPalette[Math.floor(Math.random() * wingPalette.length)],
+                            size: 0.8 + Math.random() * 2.2,
+                            pulse: Math.random() * Math.PI * 2,
+                            jitterX: 0, jitterY: 0,
+                        });
+                    }
+                }
+                
+                // Body particles (vertical line)
+                for (var b = 0; b < totalBody; b++) {
+                    var by = -0.3 + (b / (totalBody - 1)) * 0.6;
+                    bodyParticles.push({
+                        baseX: 0,
+                        baseY: by,
+                        color: [220, 200, 240],
+                        size: 1.0 + (1 - Math.abs(by) / 0.3) * 1.5,
+                        jitterX: 0, jitterY: 0,
                     });
                 }
                 
-                // Ambient dust - floats around the sphere periphery
-                ambientDust = [];
-                for (var j = 0; j < dustCount; j++) {
-                    var angle = Math.random() * Math.PI * 2;
-                    var dist = 1.1 + Math.random() * 2.5; // outside the sphere
-                    ambientDust.push({
-                        angle: angle,
-                        dist: dist,
-                        baseDist: dist,
-                        y: (Math.random() - 0.5) * 1.8,
-                        baseY: (Math.random() - 0.5) * 1.8,
-                        color: palette[Math.floor(Math.random() * palette.length)],
-                        size: 0.4 + Math.random() * 1.0,
-                        alpha: 0.08 + Math.random() * 0.18,
-                        speed: 0.15 + Math.random() * 0.5,
-                        ySpeed: 0.08 + Math.random() * 0.3,
+                // Trail particles (float behind butterfly)
+                trails = [];
+                for (var t = 0; t < totalTrail; t++) {
+                    trails.push({
+                        x: 0, y: 0,
+                        vx: 0, vy: 0,
+                        history: [],
+                        color: trailPalette[Math.floor(Math.random() * trailPalette.length)],
+                        size: 0.6 + Math.random() * 1.0,
+                        alpha: 0.15 + Math.random() * 0.25,
+                        life: Math.random() * 3,
+                        maxLife: 3 + Math.random() * 4,
                     });
                 }
             }
             
-            function drawParticle(p, spread) {
-                p.jitterX += (Math.random() - 0.5) * 0.015;
-                p.jitterY += (Math.random() - 0.5) * 0.015;
-                p.jitterZ += (Math.random() - 0.5) * 0.015;
-                p.jitterX *= 0.95;
-                p.jitterY *= 0.95;
-                p.jitterZ *= 0.95;
+            function drawWingParticle(p, spread, flapAmount, sx, sy) {
+                p.jitterX += (Math.random() - 0.5) * 0.01;
+                p.jitterY += (Math.random() - 0.5) * 0.01;
+                p.jitterX *= 0.94;
+                p.jitterY *= 0.94;
                 
-                var diffuseDist = spread * (220 + Math.random() * 0.05);
-                var radialX = p.sphereX, radialY = p.sphereY;
-                var radialLen = Math.sqrt(radialX * radialX + radialY * radialY) || 1;
-                var nx = radialX / radialLen, ny = radialY / radialLen;
+                // Flap: compress Y for wing particles based on wing type
+                var isUpper = p.wingId === 'ul' || p.wingId === 'ur';
+                var flapFactor = isUpper ? (1 + flapAmount * 0.35) : (1 + flapAmount * 0.2);
                 
-                var baseX = p.sphereX * sphereR + p.jitterX * 4;
-                var baseY = p.sphereY * sphereR + p.jitterY * 4;
-                var px = baseX + nx * diffuseDist + p.jitterX * spread * 50;
-                var py = baseY + ny * diffuseDist + p.jitterY * spread * 50;
+                // Compute position with flap
+                var bx = p.baseX * scale;
+                var by = p.baseY * scale * flapFactor;
                 
-                var sx = cx + px, sy = cy + py;
+                // Diffusion: push outward
+                var dist = Math.sqrt(bx * bx + by * by) || 1;
+                var nx = bx / dist, ny = by / dist;
+                var diffuseDist = spread * (180 + Math.random() * 0.01);
                 
-                var depthFactor = 0.35 + (p.sphereZ + 1) / 2 * 0.65;
-                var baseAlpha = 0.12 + depthFactor * 0.45;
-                var alpha = baseAlpha * (1 - spread * 0.35);
-                if (alpha < 0.015) return;
+                var px = bx + nx * diffuseDist + p.jitterX * spread * 60;
+                var py = by + ny * diffuseDist + p.jitterY * spread * 60;
+                
+                var screenX = sx + px;
+                var screenY = sy + py;
+                
+                var alpha = 0.3 * (1 - spread * 0.45);
+                if (alpha < 0.02) return;
                 
                 var c = p.color;
-                var glowSize = p.size * (2.5 + depthFactor * 3.5);
-                var glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowSize);
-                glow.addColorStop(0, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (alpha * 0.95) + ')');
-                glow.addColorStop(0.45, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (alpha * 0.25) + ')');
-                glow.addColorStop(1, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0)');
-                ctx.fillStyle = glow;
-                ctx.beginPath();
-                ctx.arc(sx, sy, glowSize, 0, Math.PI * 2);
-                ctx.fill();
-                
-                var coreAlpha = alpha * 1.4;
-                ctx.fillStyle = 'rgba(' + Math.min(c[0]+50,255) + ',' + Math.min(c[1]+50,255) + ',' + Math.min(c[2]+50,255) + ',' + coreAlpha + ')';
-                ctx.beginPath();
-                ctx.arc(sx, sy, p.size * 0.6, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            function drawAmbientDust(d, spread) {
-                d.angle += d.speed * 0.003;
-                d.y += d.ySpeed * 0.002;
-                if (Math.abs(d.y) > 1.2) d.ySpeed *= -1;
-                
-                var dustDist = d.baseDist + spread * 0.3;
-                var dx = Math.cos(d.angle) * dustDist * sphereR;
-                var dy = d.y * sphereR * 0.6;
-                var sx = cx + dx, sy = cy + dy;
-                
-                var alpha = d.alpha * (0.5 + spread * 0.5);
-                if (alpha < 0.008) return;
-                
-                var c = d.color;
-                var glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, d.size * 6);
+                var glowSize = p.size * 3.5;
+                var glow = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, glowSize);
                 glow.addColorStop(0, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + alpha + ')');
-                glow.addColorStop(0.5, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (alpha * 0.15) + ')');
+                glow.addColorStop(0.5, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (alpha * 0.3) + ')');
                 glow.addColorStop(1, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0)');
                 ctx.fillStyle = glow;
                 ctx.beginPath();
-                ctx.arc(sx, sy, d.size * 6, 0, Math.PI * 2);
+                ctx.arc(screenX, screenY, glowSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Core
+                ctx.fillStyle = 'rgba(' + Math.min(c[0]+60,255) + ',' + Math.min(c[1]+60,255) + ',' + Math.min(c[2]+60,255) + ',' + (alpha * 1.3) + ')';
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, p.size * 0.5, 0, Math.PI * 2);
                 ctx.fill();
             }
             
-            function computeSphereParams() {
-                cx = w * 0.5;
+            function drawBodyParticle(p, spread, sx, sy) {
+                p.jitterX += (Math.random() - 0.5) * 0.008;
+                p.jitterX *= 0.93;
+                
+                var bx = p.baseX * scale * 0.6 + p.jitterX * 2;
+                var by = p.baseY * scale * 0.8;
+                var dist = Math.abs(bx) + Math.abs(by) || 1;
+                var diffuseDist = spread * 100;
+                var nx = bx / (dist || 1), ny = by / (dist || 1);
+                
+                var screenX = sx + bx + nx * diffuseDist;
+                var screenY = sy + by + ny * diffuseDist;
+                
+                var alpha = 0.45 * (1 - spread * 0.5);
+                if (alpha < 0.02) return;
+                
+                var c = p.color;
+                var glow = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, p.size * 3);
+                glow.addColorStop(0, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + alpha + ')');
+                glow.addColorStop(1, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, p.size * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            function drawTrail(t, spread, sx, sy) {
+                t.life += 0.003;
+                if (t.life > t.maxLife) {
+                    t.life = 0;
+                    t.x = (Math.random() - 0.5) * 0.3 * scale;
+                    t.y = (Math.random() - 0.5) * 0.3 * scale + scale * 0.1;
+                    t.history = [];
+                }
+                
+                // Float upward and spread
+                t.vy -= 0.0003 * scale;
+                t.vx += (Math.random() - 0.5) * 0.001 * scale;
+                t.x += t.vx + spread * 0.3 * (Math.random() - 0.5) * scale;
+                t.y += t.vy - spread * 0.2 * scale;
+                
+                // Keep near butterfly area
+                var maxDist = scale * 0.5 * (1 + spread * 1.5);
+                if (Math.abs(t.x) > maxDist || Math.abs(t.y) > maxDist) {
+                    t.x *= 0.95; t.y *= 0.95;
+                }
+                
+                t.history.push({ x: t.x + sx, y: t.y + sy });
+                if (t.history.length > maxTrailLength) t.history.shift();
+                
+                // Draw trail line
+                if (t.history.length > 1) {
+                    for (var i = 1; i < t.history.length; i++) {
+                        var prev = t.history[i-1];
+                        var curr = t.history[i];
+                        var progress = i / t.history.length;
+                        var alpha = t.alpha * progress * (1 - spread * 0.4);
+                        if (alpha < 0.005) continue;
+                        
+                        var c = t.color;
+                        ctx.strokeStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + alpha + ')';
+                        ctx.lineWidth = t.size * progress * 0.7;
+                        ctx.beginPath();
+                        ctx.moveTo(prev.x, prev.y);
+                        ctx.lineTo(curr.x, curr.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            function computeParams() {
+                cx = w * 0.52;
                 cy = h * 0.42;
-                sphereR = Math.min(w, h) * 0.18;
+                scale = Math.min(w, h) * 0.5;
             }
             
             function resize() {
                 w = window.innerWidth; h = window.innerHeight;
                 canvas.width = w; canvas.height = h;
-                computeSphereParams();
+                computeParams();
                 initParticles();
             }
             
             function animate() {
                 ctx.clearRect(0, 0, w, h);
-                time += 0.008;
+                time += 0.01;
                 
                 var sp = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scroll-progress')) || 0;
-                var lerpSpeed = 0.04;
                 targetSpread = sp;
-                currentSpread += (targetSpread - currentSpread) * lerpSpeed;
+                currentSpread += (targetSpread - currentSpread) * 0.04;
                 
-                var rotAngle = time * 0.25;
-                var cosA = Math.cos(rotAngle), sinA = Math.sin(rotAngle);
+                // Flap animation
+                var flapAmount = Math.sin(time * 2.5) * 0.5 + 0.5;
                 
-                // Rotate sphere
-                for (var i = 0; i < particles.length; i++) {
-                    var p = particles[i];
-                    p._rx = p.sphereX * cosA - p.sphereZ * sinA;
-                    p._rz = p.sphereX * sinA + p.sphereZ * cosA;
-                }
-                particles.sort(function(a, b) { return a._rz - b._rz; });
-                
-                // Draw ambient dust first (behind everything)
-                for (var d = 0; d < ambientDust.length; d++) {
-                    drawAmbientDust(ambientDust[d], currentSpread);
+                // Draw trails first (behind)
+                for (var t = 0; t < trails.length; t++) {
+                    drawTrail(trails[t], currentSpread, cx, cy);
                 }
                 
-                // Draw sphere particles
+                // Draw wing particles
                 for (var i = 0; i < particles.length; i++) {
-                    var p = particles[i];
-                    var ox = p.sphereX, oz = p.sphereZ;
-                    p.sphereX = p._rx; p.sphereZ = p._rz;
-                    drawParticle(p, currentSpread);
-                    p.sphereX = ox; p.sphereZ = oz;
+                    drawWingParticle(particles[i], currentSpread, flapAmount, cx, cy);
+                }
+                
+                // Draw body
+                for (var b = 0; b < bodyParticles.length; b++) {
+                    drawBodyParticle(bodyParticles[b], currentSpread, cx, cy);
                 }
                 
                 requestAnimationFrame(animate);
