@@ -46,7 +46,7 @@
             position: relative;
         }
 
-        /* ============         /* ============ VIDEO BACKGROUND (subtle texture) ============ */
+        /* ============         /* ============         /* ============ VIDEO BACKGROUND (deep velvet texture) ============ */
         .video-bg-container {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100vh;
@@ -58,26 +58,25 @@
             width: auto; height: auto;
             transform: translate(-50%, -50%);
             object-fit: cover;
-            filter: blur(20px) brightness(0.22) saturate(0.15) contrast(0.7);
-            opacity: 0.3;
+            filter: blur(30px) brightness(0.12) saturate(0) contrast(0.6);
+            opacity: 0.25;
         }
         .video-overlay {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100vh;
             z-index: 1; pointer-events: none;
             background:
-                radial-gradient(ellipse at 50% 0%, rgba(8,12,28,0.7) 0%, transparent 65%),
-                radial-gradient(ellipse at 15% 75%, rgba(59,130,246,0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 85% 25%, rgba(139,92,246,0.04) 0%, transparent 50%);
+                radial-gradient(ellipse at 50% 30%, rgba(40,30,20,0.50) 0%, rgba(4,4,10,0.92) 80%),
+                radial-gradient(ellipse at 50% 70%, rgba(20,15,25,0.30) 0%, transparent 60%);
         }
         .video-vignette {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100vh;
             z-index: 1; pointer-events: none;
-            box-shadow: inset 0 0 280px 120px rgba(2,6,23,0.88);
+            box-shadow: inset 0 0 300px 150px rgba(2,2,8,0.95);
         }
 
-        /* ============ AURORA CANVAS (main background art) ============ */
+        /* ============ METALLIC DUST CANVAS ============ */
         #bgCanvas {
             position: fixed; top:0; left:0; width:100%; height:100%;
             z-index: 2; pointer-events: none; opacity: 1;
@@ -86,11 +85,11 @@
         /* ============ SCROLL PROGRESS BAR ============ */
         .scroll-progress-bar {
             position: fixed; top: 0; left: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #5b8cff, #a855f7, #d4af37);
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #c9a96e, #d4af37, #c9a96e, transparent);
             z-index: 999;
-            transition: width 0.1s linear;
-            box-shadow: 0 0 10px rgba(139,92,246,0.5);
+            transition: width 0.08s linear;
+            box-shadow: 0 0 6px rgba(212,175,55,0.3);
         }
 
 ANIMATIONS ============ */
@@ -1135,154 +1134,169 @@ ANIMATIONS ============ */
     </div>
 
     <script>
-                // ============ PREMIUM AURORA BACKGROUND ============
+                // ============         // ============ METALLIC PARTICLE SYSTEM ============
         (function() {
             var canvas = document.getElementById('bgCanvas');
             var ctx = canvas.getContext('2d');
-            var w, h;
+            var w, h, isMobile;
             var time = 0;
             var smoothProgress = 0;
             
-            var orbs = [
-                { x: 0.15, y: 0.35, r: 200, color: [59, 130, 246], speed: 0.25, phase: 0 },
-                { x: 0.78, y: 0.55, r: 240, color: [139, 92, 246], speed: 0.2, phase: 1.5 },
-                { x: 0.5, y: 0.78, r: 170, color: [6, 182, 212], speed: 0.3, phase: 3 },
-                { x: 0.88, y: 0.22, r: 140, color: [168, 85, 247], speed: 0.18, phase: 4.5 },
-                { x: 0.25, y: 0.65, r: 220, color: [59, 130, 246], speed: 0.22, phase: 2 },
-            ];
-            
-            var particles = [];
-            var particleCount = 45;
-            for (var i = 0; i < particleCount; i++) {
-                particles.push({
-                    x: Math.random(),
-                    y: Math.random(),
-                    vx: (Math.random() - 0.5) * 0.00025,
-                    vy: -0.00015 - Math.random() * 0.0004,
-                    size: Math.random() * 1.4 + 0.4,
-                    alpha: Math.random() * 0.45 + 0.15,
-                    life: Math.random(),
-                    maxLife: 1.5 + Math.random() * 2.5
-                });
+            // Determine particle count based on device
+            function getParticleCount() {
+                return isMobile ? 28 : 50;
             }
             
-            function drawOrb(orb, progress) {
-                var cx = orb.x * w + Math.sin(time * orb.speed + orb.phase) * 50 * (1 + progress);
-                var cy = orb.y * h + Math.cos(time * orb.speed * 0.7 + orb.phase) * 35 * (1 + progress);
-                var radius = orb.r * (0.8 + Math.sin(time * 0.5 + orb.phase) * 0.2);
+            // Warm metallic palette: gold, rose gold, copper, champagne
+            var palette = [
+                { r: 212, g: 175, b: 55,  weight: 0.35 },  // gold
+                { r: 225, g: 190, b: 130, weight: 0.20 },  // champagne
+                { r: 183, g: 110, b: 95,  weight: 0.15 },  // rose gold
+                { r: 200, g: 155, b: 100, weight: 0.15 },  // copper
+                { r: 240, g: 210, b: 160, weight: 0.10 },  // light gold
+                { r: 160, g: 140, b: 120, weight: 0.05 },  // silver
+            ];
+            
+            function pickColor() {
+                var r = Math.random();
+                var cumulative = 0;
+                for (var i = 0; i < palette.length; i++) {
+                    cumulative += palette[i].weight;
+                    if (r <= cumulative) return palette[i];
+                }
+                return palette[0];
+            }
+            
+            var particles = [];
+            
+            function createParticle(startY) {
+                var color = pickColor();
+                return {
+                    x: Math.random(),
+                    y: startY !== undefined ? startY : Math.random(),
+                    vx: (Math.random() - 0.5) * 0.00008,
+                    vy: -(0.00008 + Math.random() * 0.00025),
+                    size: Math.random() * 1.0 + 0.35,
+                    alpha: Math.random() * 0.35 + 0.08,
+                    life: Math.random(),
+                    maxLife: 3 + Math.random() * 5,
+                    color: color,
+                    sparkle: false,
+                    sparkleTime: 0,
+                    sparkleDuration: 0
+                };
+            }
+            
+            function initParticles() {
+                var count = getParticleCount();
+                particles = [];
+                for (var i = 0; i < count; i++) {
+                    particles.push(createParticle());
+                }
+            }
+            
+            function drawParticle(p, progress) {
+                p.life += 0.0015;
+                if (p.life > p.maxLife) {
+                    // Recycle particle
+                    var nc = pickColor();
+                    p.x = Math.random();
+                    p.y = 1.05;
+                    p.life = 0;
+                    p.alpha = Math.random() * 0.35 + 0.06;
+                    p.color = nc;
+                    p.sparkle = false;
+                    p.sparkleTime = 0;
+                }
                 
-                var gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-                var r = orb.color[0], g = orb.color[1], b = orb.color[2];
-                gradient.addColorStop(0, 'rgba(' + r + ',' + g + ',' + b + ',0.10)');
-                gradient.addColorStop(0.35, 'rgba(' + r + ',' + g + ',' + b + ',0.04)');
-                gradient.addColorStop(0.7, 'rgba(' + r + ',' + g + ',' + b + ',0.012)');
-                gradient.addColorStop(1, 'rgba(' + r + ',' + g + ',' + b + ',0)');
+                // Slow drift upward with subtle horizontal wobble
+                p.x += p.vx + Math.sin(time * 0.3 + p.life) * 0.00003;
+                p.y += p.vy;
                 
-                ctx.fillStyle = gradient;
+                // Wrap around
+                if (p.y < -0.05) { p.y = 1.05; p.x = Math.random(); }
+                if (p.x < 0) p.x += 1;
+                if (p.x > 1) p.x -= 1;
+                
+                // Occasional sparkle - random bright moments
+                if (!p.sparkle && Math.random() < 0.0003) {
+                    p.sparkle = true;
+                    p.sparkleTime = 0;
+                    p.sparkleDuration = 0.6 + Math.random() * 1.2;
+                }
+                if (p.sparkle) {
+                    p.sparkleTime += 0.016;
+                    if (p.sparkleTime > p.sparkleDuration) {
+                        p.sparkle = false;
+                    }
+                }
+                
+                var fadeIn = p.life < 0.3 ? p.life / 0.3 : 1;
+                var fadeOut = p.life > p.maxLife - 0.5 ? (p.maxLife - p.life) / 0.5 : 1;
+                var fadeRatio = Math.min(fadeIn, fadeOut);
+                
+                var sparkleBoost = p.sparkle ? (1 + Math.sin(p.sparkleTime / p.sparkleDuration * Math.PI) * 3.5) : 1;
+                var alpha = p.alpha * fadeRatio * sparkleBoost;
+                
+                if (alpha < 0.003) return;
+                
+                var px = p.x * w;
+                var py = p.y * h;
+                
+                // Soft outer glow
+                var glowSize = p.size * (p.sparkle ? 8 : 4);
+                var glow = ctx.createRadialGradient(px, py, 0, px, py, glowSize);
+                var cr = p.color.r, cg = p.color.g, cb = p.color.b;
+                glow.addColorStop(0, 'rgba(' + cr + ',' + cg + ',' + cb + ',' + (alpha * 0.9) + ')');
+                glow.addColorStop(0.3, 'rgba(' + cr + ',' + cg + ',' + cb + ',' + (alpha * 0.25) + ')');
+                glow.addColorStop(1, 'rgba(' + cr + ',' + cg + ',' + cb + ',0)');
+                
+                ctx.fillStyle = glow;
                 ctx.beginPath();
-                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.arc(px, py, glowSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Sharp core dot
+                var coreAlpha = p.sparkle ? alpha * 1.8 : alpha * 0.8;
+                ctx.fillStyle = 'rgba(' + (Math.min(cr + 30, 255)) + ',' + (Math.min(cg + 30, 255)) + ',' + (Math.min(cb + 30, 255)) + ',' + coreAlpha + ')';
+                ctx.beginPath();
+                ctx.arc(px, py, p.size * 0.35, 0, Math.PI * 2);
                 ctx.fill();
             }
             
-            function drawParticles(progress) {
-                for (var i = 0; i < particles.length; i++) {
-                    var p = particles[i];
-                    p.life += 0.0025;
-                    if (p.life > p.maxLife) {
-                        p.x = Math.random();
-                        p.y = 1.05;
-                        p.life = 0;
-                        p.alpha = Math.random() * 0.45 + 0.15;
-                    }
-                    
-                    p.x += p.vx + progress * 0.00008;
-                    p.y += p.vy;
-                    if (p.y < -0.05) { p.y = 1.05; p.x = Math.random(); }
-                    if (p.x < 0) p.x += 1;
-                    if (p.x > 1) p.x -= 1;
-                    
-                    var fadeRatio = p.life < 0.15 ? p.life / 0.15 : (p.life > p.maxLife - 0.25 ? (p.maxLife - p.life) / 0.25 : 1);
-                    var alpha = p.alpha * fadeRatio;
-                    var px = p.x * w;
-                    var py = p.y * h;
-                    
-                    var glow = ctx.createRadialGradient(px, py, 0, px, py, p.size * 5);
-                    glow.addColorStop(0, 'rgba(212,175,55,' + alpha + ')');
-                    glow.addColorStop(0.4, 'rgba(212,175,55,' + (alpha * 0.25) + ')');
-                    glow.addColorStop(1, 'rgba(212,175,55,0)');
-                    
-                    ctx.fillStyle = glow;
-                    ctx.beginPath();
-                    ctx.arc(px, py, p.size * 5, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    ctx.fillStyle = 'rgba(251,225,160,' + (alpha * 1.3) + ')';
-                    ctx.beginPath();
-                    ctx.arc(px, py, p.size * 0.6, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-            
-            function drawAuroraWaves(progress) {
-                for (var band = 0; band < 3; band++) {
-                    var baseY = (0.2 + band * 0.3) * h;
-                    var waveOffset = Math.sin(time * 0.25 + band * 2) * 70 + progress * 250;
-                    var y = baseY + waveOffset;
-                    
-                    var gradient = ctx.createLinearGradient(0, y - 130, 0, y + 130);
-                    var palette = [
-                        ['rgba(59,130,246,0.035)', 'rgba(139,92,246,0.018)', 'rgba(59,130,246,0)'],
-                        ['rgba(139,92,246,0.028)', 'rgba(6,182,212,0.015)', 'rgba(139,92,246,0)'],
-                        ['rgba(6,182,212,0.025)', 'rgba(59,130,246,0.015)', 'rgba(6,182,212,0)']
-                    ];
-                    var c = palette[band];
-                    gradient.addColorStop(0, 'transparent');
-                    gradient.addColorStop(0.35, c[0]);
-                    gradient.addColorStop(0.65, c[1]);
-                    gradient.addColorStop(1, 'transparent');
-                    
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, y - 130, w, 260);
-                }
-            }
-            
-            function drawSubtleGrid(progress) {
-                ctx.strokeStyle = 'rgba(255,255,255,0.012)';
-                ctx.lineWidth = 0.5;
-                var spacing = 90;
-                var offset = (progress * spacing) % spacing;
-                for (var x = offset; x < w; x += spacing) {
-                    ctx.beginPath();
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, h);
-                    ctx.stroke();
-                }
-                for (var y = offset; y < h; y += spacing) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(w, y);
-                    ctx.stroke();
-                }
+            function drawAmbientGlow(progress) {
+                // Single, very subtle warm glow - not a wave, just a soft presence
+                var gy = h * (0.55 + progress * 0.15);
+                var gradient = ctx.createRadialGradient(w * 0.5, gy, 0, w * 0.5, gy, h * 0.7);
+                gradient.addColorStop(0, 'rgba(180,140,80,0.025)');
+                gradient.addColorStop(0.5, 'rgba(180,140,80,0.008)');
+                gradient.addColorStop(1, 'rgba(180,140,80,0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, w, h);
             }
             
             function resize() {
                 w = window.innerWidth;
                 h = window.innerHeight;
+                isMobile = w < 768;
                 canvas.width = w;
                 canvas.height = h;
+                initParticles();
             }
             
             function animate() {
                 ctx.clearRect(0, 0, w, h);
-                time += 0.004;
+                time += 0.005;
                 
                 var sp = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scroll-progress')) || 0;
-                smoothProgress += (sp - smoothProgress) * 0.04;
+                smoothProgress += (sp - smoothProgress) * 0.03;
                 
-                drawSubtleGrid(smoothProgress);
-                drawAuroraWaves(smoothProgress);
-                for (var i = 0; i < orbs.length; i++) drawOrb(orbs[i], smoothProgress);
-                drawParticles(smoothProgress);
+                drawAmbientGlow(smoothProgress);
+                
+                for (var i = 0; i < particles.length; i++) {
+                    drawParticle(particles[i], smoothProgress);
+                }
                 
                 requestAnimationFrame(animate);
             }
@@ -1307,7 +1321,7 @@ ANIMATIONS ============ */
                 
                 if (video && video.duration && !video.seeking) {
                     var targetTime = progress * video.duration;
-                    if (Math.abs(video.currentTime - targetTime) > 0.15) {
+                    if (Math.abs(video.currentTime - targetTime) > 0.2) {
                         video.currentTime = targetTime;
                     }
                 }
@@ -1327,7 +1341,7 @@ ANIMATIONS ============ */
             updateScroll();
         })();
 
-// ============ SCROLL REVEAL ANIMATIONS ============
+SCROLL REVEAL ANIMATIONS ============
         (function() {
             var revealElements = document.querySelectorAll('.reveal');
             if ('IntersectionObserver' in window) {
