@@ -686,7 +686,61 @@
         .download-aside h4 { margin-bottom: 12px; }
         .download-aside ol { padding-left: 20px; margin-bottom: 12px; color: var(--text-secondary); line-height: 1.8; }
 
-        /* ============ FOOTER ============ */
+        /* ============ VERSION & CHANGELOG ============ */
+        .version-section {
+            max-width: 1200px; margin: 0 auto 40px; padding: 0 24px;
+            text-align: center;
+        }
+        .version-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px;
+            border-radius: 50px;
+            background: rgba(139,92,246,0.1);
+            border: 1px solid rgba(139,92,246,0.2);
+            font-size: 0.75rem; font-weight: 600;
+            color: var(--accent-purple);
+            cursor: pointer;
+            transition: all 0.3s;
+            user-select: none;
+        }
+        .version-badge:hover { background: rgba(139,92,246,0.18); border-color: rgba(139,92,246,0.35); }
+        .version-badge .arrow { font-size: 0.6rem; transition: transform 0.3s; }
+        .version-badge.open .arrow { transform: rotate(180deg); }
+        .changelog-panel {
+            max-width: 500px; margin: 12px auto 0;
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border-active);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            text-align: left;
+            display: none;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .changelog-panel.show { display: block; animation: fadeInUp 0.3s ease-out; }
+        .changelog-panel h4 {
+            font-family: var(--font-display);
+            font-size: 1rem; margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+        .changelog-panel .version-tag {
+            display: inline-block; padding: 2px 10px; border-radius: 4px;
+            background: linear-gradient(135deg,var(--accent-purple),#6366f1);
+            color: #fff; font-size: 0.7rem; font-weight: 700; margin-left: 8px;
+        }
+        .changelog-panel ul {
+            list-style: none; padding: 0;
+        }
+        .changelog-panel ul li {
+            padding: 5px 0; font-size: 0.85rem; color: var(--text-secondary);
+            display: flex; align-items: flex-start; gap: 8px;
+            line-height: 1.5;
+        }
+        .changelog-panel ul li::before {
+            content: "●"; color: var(--accent-cyan); font-size: 0.5rem;
+            margin-top: 6px; flex-shrink: 0;
+        }
+/* ============ FOOTER ============ */
         .footer {
             border-top: 1px solid var(--border-subtle);
             padding: 28px 0;
@@ -1108,7 +1162,24 @@
                 </div>
             </section>
 
-            <footer class="footer reveal">
+            
+            <!-- ============ VERSION and CHANGELOG ============ -->
+            <section class="version-section reveal">
+                <div class="version-badge" id="versionBadge" onclick="toggleChangelog()">
+                    当前版本 v2.0.0 <span class="arrow">▼</span>
+                </div>
+                <div class="changelog-panel" id="changelogPanel">
+                    <h4>更新日志 <span class="version-tag">v2.0.0</span></h4>
+                    <ul>
+                        <li>全新 AI 驱动短线交易引擎上线</li>
+                        <li>深度强化学习策略模型 PPO + Transformer 架构</li>
+                        <li>多层风控防火墙：仓位限制 + 日内回撤熔断 + 流动性校验</li>
+                        <li>实时可视化面板，WebSocket 驱动 PnL 与热力图</li>
+                        <li>多交易所统一接入：CTP / XTP / FIX 协议支持</li>
+                    </ul>
+                </div>
+            </section>
+<footer class="footer reveal">
                 <span>© 2026 睿欣科技 · 保留所有权利</span>
                 <span><a href="#">隐私政策</a> · <a href="#">用户协议</a> · <a href="#">帮助中心</a></span>
             </footer>
@@ -1458,6 +1529,14 @@
             if (e.key === 'Escape') closeVideoModal();
         });
 
+        // ============ VERSION CHANGELOG TOGGLE ============
+        function toggleChangelog() {
+            var panel = document.getElementById('changelogPanel');
+            var badge = document.getElementById('versionBadge');
+            var show = !panel.classList.contains('show');
+            panel.classList.toggle('show', show);
+            badge.classList.toggle('open', show);
+        }
         // ============ CHAT ============
         var chatWindow = document.getElementById('chatWindow');
         var chatMessages = document.getElementById('chatMessages');
