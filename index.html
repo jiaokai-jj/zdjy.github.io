@@ -1131,123 +1131,199 @@
     </div>
 
     <script>
-                // ============ METAL ION DIFFUSION ============
+                        // ============ SPHERE → DIFFUSION PARTICLE SYSTEM ============
         (function() {
             var canvas = document.getElementById('bgCanvas');
             if (!canvas) return;
             var ctx = canvas.getContext('2d');
-            var w, h, isMobile;
+            var w, h, cx, cy, sphereR;
             var time = 0;
-            var smoothProgress = 0;
+            var currentSpread = 0;
+            var targetSpread = 0;
             
-            var metalTones = [
-                { base: [175,185,200], highlight: [230,238,250], r0: 8,  r1: 22 },
-                { base: [145,150,165], highlight: [205,215,232], r0: 6,  r1: 16 },
-                { base: [185,192,208], highlight: [238,243,254], r0: 10, r1: 28 },
-                { base: [135,142,158], highlight: [195,205,225], r0: 5,  r1: 14 },
-                { base: [165,172,190], highlight: [218,228,245], r0: 7,  r1: 20 },
+            // Colorful spectrum palette
+            var palette = [
+                [80, 180, 255],   // blue
+                [120, 140, 250],  // periwinkle
+                [160, 100, 250],  // purple
+                [60, 210, 230],   // cyan
+                [200, 130, 250],  // lavender
+                [40, 160, 245],   // sky
+                [240, 170, 90],   // warm gold
+                [100, 90, 240],   // violet
+                [70, 200, 210],   // teal
+                [180, 150, 250],  // lilac
             ];
             
-            var ions = [];
+            var particles = [];
+            var particleCount = 55;
             
-            function rndVerts() {
-                var n = 3 + Math.floor(Math.random() * 3);
-                var verts = [];
-                var baseR = 11 + Math.random() * 24;
-                for (var i = 0; i < n; i++) {
-                    var a = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
-                    var r = baseR * (0.55 + Math.random() * 0.45);
-                    verts.push({ a: a, r: r });
+            // Fibonacci sphere distribution
+            function createSpherePoints(count) {
+                var points = [];
+                var phi = Math.PI * (3 - Math.sqrt(5));
+                for (var i = 0; i < count; i++) {
+                    var y = 1 - (i / (count - 1)) * 2;
+                    var radiusAtY = Math.sqrt(1 - y * y);
+                    var theta = phi * i;
+                    points.push({
+                        x: Math.cos(theta) * radiusAtY,
+                        y: y,
+                        z: Math.sin(theta) * radiusAtY,
+                    });
                 }
-                return verts;
+                return points;
             }
             
-            function createIon() {
-                var tone = metalTones[Math.floor(Math.random() * metalTones.length)];
-                var angle = Math.random() * Math.PI * 2;
-                return {
-                    baseDist: 0.02 + Math.random() * 0.06,
-                    targetDist: 0.15 + Math.random() * 0.55,
-                    angle: angle,
-                    verts: rndVerts(),
-                    rotation: Math.random() * Math.PI * 2,
-                    rotSpeed: (Math.random() - 0.5) * 0.012,
-                    tone: tone,
-                    hlAngle: Math.random() * Math.PI * 2,
-                    hlIntensity: 0.45 + Math.random() * 0.55,
-                    phase: Math.random() * Math.PI * 2,
-                };
-            }
+            var spherePoints = createSpherePoints(particleCount);
             
-            function initIons() {
-                var count = isMobile ? 14 : 26;
-                ions = [];
-                for (var i = 0; i < count; i++) ions.push(createIon());
-            }
-            
-            function drawIon(ion, progress) {
-                var spread = ion.targetDist * progress;
-                ion.baseDist += (spread - ion.baseDist) * 0.015;
-                var wobble = Math.sin(time * 0.35 + ion.phase) * 0.006;
-                var d = Math.max(ion.baseDist + wobble, 0.01);
-                
-                var cx = (0.5 + Math.cos(ion.angle) * d) * w;
-                var cy = (0.5 + Math.sin(ion.angle) * d * 0.75) * h;
-                ion.rotation += ion.rotSpeed;
-                
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(ion.rotation);
-                
-                // Polygon path
-                ctx.beginPath();
-                for (var i = 0; i < ion.verts.length; i++) {
-                    var v = ion.verts[i];
-                    var vx = Math.cos(v.a) * v.r;
-                    var vy = Math.sin(v.a) * v.r;
-                    if (i === 0) ctx.moveTo(vx, vy);
-                    else ctx.lineTo(vx, vy);
+            function initParticles() {
+                particles = [];
+                for (var i = 0; i < particleCount; i++) {
+                    var sp = spherePoints[i];
+                    var color = palette[Math.floor(Math.random() * palette.length)];
+                    particles.push({
+                        sphereX: sp.x,
+                        sphereY: sp.y,
+                        sphereZ: sp.z,
+                        color: color,
+                        size: 1.0 + Math.random() * 2.5,
+                        pulse: Math.random() * Math.PI * 2,
+                        pulseSpeed: 0.02 + Math.random() * 0.04,
+                        // Random offset for natural look
+                        jitterX: 0,
+                        jitterY: 0,
+                        jitterZ: 0,
+                    });
                 }
-                ctx.closePath();
+            }
+            
+            function drawParticle(p, spread) {
+                // Interpolate between sphere position and diffused position
+                // At spread=0: particle at sphere surface
+                // At spread=1: particle far from center
                 
-                var b = ion.tone.base;
-                ctx.fillStyle = 'rgba(' + b[0] + ',' + b[1] + ',' + b[2] + ',0.15)';
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(' + b[0] + ',' + b[1] + ',' + b[2] + ',0.30)';
-                ctx.lineWidth = 0.5;
-                ctx.stroke();
+                // Smooth jitter for natural movement
+                p.jitterX += (Math.random() - 0.5) * 0.02;
+                p.jitterY += (Math.random() - 0.5) * 0.02;
+                p.jitterZ += (Math.random() - 0.5) * 0.02;
+                p.jitterX *= 0.95;
+                p.jitterY *= 0.95;
+                p.jitterZ *= 0.95;
                 
-                // Specular highlight dot
-                var hl = ion.tone.highlight;
-                var hlX = Math.cos(ion.hlAngle) * 2.5;
-                var hlY = Math.sin(ion.hlAngle) * 2.5;
-                var hlGrad = ctx.createRadialGradient(hlX, hlY, 0, hlX, hlY, 4);
-                hlGrad.addColorStop(0, 'rgba(' + hl[0] + ',' + hl[1] + ',' + hl[2] + ',' + (0.65 * ion.hlIntensity) + ')');
-                hlGrad.addColorStop(0.4, 'rgba(' + hl[0] + ',' + hl[1] + ',' + hl[2] + ',' + (0.18 * ion.hlIntensity) + ')');
-                hlGrad.addColorStop(1, 'rgba(' + hl[0] + ',' + hl[1] + ',' + hl[2] + ',0)');
-                ctx.fillStyle = hlGrad;
+                // Diffusion: move outward along radial direction
+                var diffuseDist = spread * (180 + Math.random() * 0.1); // max diffusion
+                var radialX = p.sphereX;
+                var radialY = p.sphereY;
+                var radialLen = Math.sqrt(radialX * radialX + radialY * radialY) || 1;
+                var nx = radialX / radialLen;
+                var ny = radialY / radialLen;
+                
+                // Base position on sphere
+                var baseX = p.sphereX * sphereR + p.jitterX * 3;
+                var baseY = p.sphereY * sphereR + p.jitterY * 3;
+                
+                // Add diffusion: push outward
+                var px = baseX + nx * diffuseDist + p.jitterX * spread * 40;
+                var py = baseY + ny * diffuseDist + p.jitterY * spread * 40;
+                
+                // Convert to screen coordinates
+                var sx = cx + px;
+                var sy = cy + py;
+                
+                // Depth cue: particles with positive Z are "in front", brighter
+                var depthFactor = 0.4 + (p.sphereZ + 1) / 2 * 0.6; // 0.4 to 1.0
+                var baseAlpha = 0.15 + depthFactor * 0.4;
+                var alpha = baseAlpha * (1 - spread * 0.4); // slightly fade when spread
+                
+                if (alpha < 0.02) return;
+                
+                var c = p.color;
+                
+                // Particle glow
+                var glowSize = p.size * (2 + depthFactor * 3);
+                var glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowSize);
+                glow.addColorStop(0, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (alpha * 0.9) + ')');
+                glow.addColorStop(0.5, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (alpha * 0.3) + ')');
+                glow.addColorStop(1, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0)');
+                
+                ctx.fillStyle = glow;
                 ctx.beginPath();
-                ctx.arc(hlX, hlY, 4, 0, Math.PI * 2);
+                ctx.arc(sx, sy, glowSize, 0, Math.PI * 2);
                 ctx.fill();
                 
-                ctx.restore();
+                // Bright core
+                var coreAlpha = alpha * 1.3;
+                ctx.fillStyle = 'rgba(' + Math.min(c[0]+40,255) + ',' + Math.min(c[1]+40,255) + ',' + Math.min(c[2]+40,255) + ',' + coreAlpha + ')';
+                ctx.beginPath();
+                ctx.arc(sx, sy, p.size * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            function computeSphereParams() {
+                cx = w * 0.5;
+                cy = h * 0.42;
+                sphereR = Math.min(w, h) * 0.12;
             }
             
             function resize() {
                 w = window.innerWidth;
                 h = window.innerHeight;
-                isMobile = w < 768;
                 canvas.width = w;
                 canvas.height = h;
-                initIons();
+                computeSphereParams();
+                initParticles();
             }
             
             function animate() {
                 ctx.clearRect(0, 0, w, h);
-                time += 0.005;
+                time += 0.008;
+                
+                // Read scroll progress
                 var sp = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scroll-progress')) || 0;
-                smoothProgress += (sp - smoothProgress) * 0.025;
-                for (var i = 0; i < ions.length; i++) drawIon(ions[i], smoothProgress);
+                
+                // Smoothly interpolate spread
+                // When sp > currentSpread: spread increases (diffusion)
+                // When sp < currentSpread: spread decreases (return to sphere)
+                var lerpSpeed = 0.04;
+                targetSpread = sp;
+                currentSpread += (targetSpread - currentSpread) * lerpSpeed;
+                
+                // Rotate the sphere slightly over time
+                var rotAngle = time * 0.3;
+                var cosA = Math.cos(rotAngle);
+                var sinA = Math.sin(rotAngle);
+                
+                // Apply rotation to all sphere points
+                for (var i = 0; i < particles.length; i++) {
+                    var p = particles[i];
+                    // Rotate around Y axis
+                    var rx = p.sphereX * cosA - p.sphereZ * sinA;
+                    var rz = p.sphereX * sinA + p.sphereZ * cosA;
+                    // Store rotated values temporarily
+                    p._rx = rx;
+                    p._rz = rz;
+                }
+                
+                // Sort by depth (Z) for proper overlap
+                particles.sort(function(a, b) { return a._rz - b._rz; });
+                
+                // Draw all particles
+                for (var i = 0; i < particles.length; i++) {
+                    var p = particles[i];
+                    // Use rotated coordinates for drawing
+                    var origX = p.sphereX;
+                    var origZ = p.sphereZ;
+                    p.sphereX = p._rx;
+                    p.sphereZ = p._rz;
+                    
+                    drawParticle(p, currentSpread);
+                    
+                    // Restore
+                    p.sphereX = origX;
+                    p.sphereZ = origZ;
+                }
+                
                 requestAnimationFrame(animate);
             }
             
