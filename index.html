@@ -46,7 +46,7 @@
             position: relative;
         }
 
-        /* ============         /* ============         /* ============ VIDEO BACKGROUND (deep velvet texture) ============ */
+        /* ============         /* ============         /* ============ VIDEO - cold deep texture ============ */
         .video-bg-container {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100vh;
@@ -58,42 +58,38 @@
             width: auto; height: auto;
             transform: translate(-50%, -50%);
             object-fit: cover;
-            filter: blur(30px) brightness(0.12) saturate(0) contrast(0.6);
-            opacity: 0.25;
+            filter: blur(24px) brightness(0.10) saturate(0) contrast(0.8);
+            opacity: 0.20;
         }
         .video-overlay {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100vh;
             z-index: 1; pointer-events: none;
-            background:
-                radial-gradient(ellipse at 50% 30%, rgba(40,30,20,0.50) 0%, rgba(4,4,10,0.92) 80%),
-                radial-gradient(ellipse at 50% 70%, rgba(20,15,25,0.30) 0%, transparent 60%);
+            background: radial-gradient(ellipse at 50% 40%, rgba(8,10,18,0.4) 0%, rgba(2,3,7,0.96) 75%);
         }
         .video-vignette {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100vh;
             z-index: 1; pointer-events: none;
-            box-shadow: inset 0 0 300px 150px rgba(2,2,8,0.95);
+            box-shadow: inset 0 0 300px 160px rgba(0,1,4,0.95);
         }
 
-        /* ============ METALLIC DUST CANVAS ============ */
+        /* ============ METAL ION CANVAS ============ */
         #bgCanvas {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            z-index: 2; pointer-events: none; opacity: 1;
+            z-index: 2; pointer-events: none;
         }
 
-        /* ============ SCROLL PROGRESS BAR ============ */
+        /* ============ SCROLL PROGRESS ============ */
         .scroll-progress-bar {
             position: fixed; top: 0; left: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, #c9a96e, #d4af37, #c9a96e, transparent);
+            background: linear-gradient(90deg, transparent, rgba(180,190,210,0.6), rgba(210,220,240,0.9), rgba(180,190,210,0.6), transparent);
             z-index: 999;
             transition: width 0.08s linear;
-            box-shadow: 0 0 6px rgba(212,175,55,0.3);
         }
 
-ANIMATIONS ============ */
-        @keyframes float1 { 0%{ transform:translate(0,0); } 100%{ transform:translate(35px,-35px); } }
+ { 0%{ transform:translate(0,0); } 100%{ transform:translate(35px,-35px); } }
         @keyframes float2 { 0%{ transform:translate(0,0); } 100%{ transform:translate(-30px,25px); } }
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(40px); }
@@ -1139,141 +1135,123 @@ ANIMATIONS ============ */
             var canvas = document.getElementById('bgCanvas');
             var ctx = canvas.getContext('2d');
             var w, h, isMobile;
+                 // ============ METAL ION DIFFUSION SYSTEM ============
+        (function() {
+            var canvas = document.getElementById('bgCanvas');
+            var ctx = canvas.getContext('2d');
+            var w, h, isMobile;
             var time = 0;
             var smoothProgress = 0;
             
-            // Determine particle count based on device
-            function getParticleCount() {
-                return isMobile ? 28 : 50;
-            }
-            
-            // Warm metallic palette: gold, rose gold, copper, champagne
-            var palette = [
-                { r: 212, g: 175, b: 55,  weight: 0.35 },  // gold
-                { r: 225, g: 190, b: 130, weight: 0.20 },  // champagne
-                { r: 183, g: 110, b: 95,  weight: 0.15 },  // rose gold
-                { r: 200, g: 155, b: 100, weight: 0.15 },  // copper
-                { r: 240, g: 210, b: 160, weight: 0.10 },  // light gold
-                { r: 160, g: 140, b: 120, weight: 0.05 },  // silver
+            // Chrome/silver/titanium palette - cold metallics
+            var metalTones = [
+                { base: [180,190,205], highlight: [230,235,248] },  // titanium
+                { base: [150,155,170], highlight: [210,218,235] },  // dark chrome
+                { base: [190,195,210], highlight: [240,243,252] },  // bright silver
+                { base: [140,148,165], highlight: [200,210,228] },  // gunmetal
+                { base: [170,178,195], highlight: [225,232,248] },  // platinum
             ];
             
-            function pickColor() {
-                var r = Math.random();
-                var cumulative = 0;
-                for (var i = 0; i < palette.length; i++) {
-                    cumulative += palette[i].weight;
-                    if (r <= cumulative) return palette[i];
-                }
-                return palette[0];
-            }
+            function getCount() { return isMobile ? 16 : 28; }
             
-            var particles = [];
+            // Each ion: an irregular faceted shape with specular highlight
+            var ions = [];
             
-            function createParticle(startY) {
-                var color = pickColor();
+            function createIon() {
+                var tone = metalTones[Math.floor(Math.random() * metalTones.length)];
+                // Random position in a ring - will diffuse from center
+                var angle = Math.random() * Math.PI * 2;
+                var dist = Math.random() * 0.05; // start near center
                 return {
-                    x: Math.random(),
-                    y: startY !== undefined ? startY : Math.random(),
-                    vx: (Math.random() - 0.5) * 0.00008,
-                    vy: -(0.00008 + Math.random() * 0.00025),
-                    size: Math.random() * 1.0 + 0.35,
-                    alpha: Math.random() * 0.35 + 0.08,
-                    life: Math.random(),
-                    maxLife: 3 + Math.random() * 5,
-                    color: color,
-                    sparkle: false,
-                    sparkleTime: 0,
-                    sparkleDuration: 0
+                    cx: 0.5 + Math.cos(angle) * dist,
+                    cy: 0.5 + Math.sin(angle) * dist,
+                    targetDist: 0.15 + Math.random() * 0.55, // max diffusion distance
+                    angle: angle,
+                    baseDist: dist,
+                    // Irregular polygon vertices (3-5 sides)
+                    verts: (function() {
+                        var n = 3 + Math.floor(Math.random() * 3);
+                        var v = [];
+                        var baseR = 8 + Math.random() * 18;
+                        for (var i = 0; i < n; i++) {
+                            var a = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+                            var r = baseR * (0.6 + Math.random() * 0.4);
+                            v.push({ a: a, r: r });
+                        }
+                        return v;
+                    })(),
+                    rotation: Math.random() * Math.PI * 2,
+                    rotSpeed: (Math.random() - 0.5) * 0.015,
+                    tone: tone,
+                    // Facet highlight offset
+                    hlAngle: Math.random() * Math.PI * 2,
+                    hlIntensity: 0.5 + Math.random() * 0.5,
                 };
             }
             
-            function initParticles() {
-                var count = getParticleCount();
-                particles = [];
-                for (var i = 0; i < count; i++) {
-                    particles.push(createParticle());
+            function initIons() {
+                ions = [];
+                for (var i = 0; i < getCount(); i++) {
+                    ions.push(createIon());
                 }
             }
             
-            function drawParticle(p, progress) {
-                p.life += 0.0015;
-                if (p.life > p.maxLife) {
-                    // Recycle particle
-                    var nc = pickColor();
-                    p.x = Math.random();
-                    p.y = 1.05;
-                    p.life = 0;
-                    p.alpha = Math.random() * 0.35 + 0.06;
-                    p.color = nc;
-                    p.sparkle = false;
-                    p.sparkleTime = 0;
-                }
+            function drawIon(ion, progress) {
+                // Diffusion: ions spread from center based on scroll progress
+                var spread = ion.targetDist * progress;
+                var dist = ion.baseDist + (spread - ion.baseDist) * 0.08;
+                ion.baseDist += (dist - ion.baseDist) * 0.02;
                 
-                // Slow drift upward with subtle horizontal wobble
-                p.x += p.vx + Math.sin(time * 0.3 + p.life) * 0.00003;
-                p.y += p.vy;
+                var wobble = Math.sin(time * 0.4 + ion.angle * 3) * 0.008;
+                var cx = (0.5 + Math.cos(ion.angle) * (ion.baseDist + wobble)) * w;
+                var cy = (0.5 + Math.sin(ion.angle) * (ion.baseDist + wobble * 0.7)) * h;
                 
-                // Wrap around
-                if (p.y < -0.05) { p.y = 1.05; p.x = Math.random(); }
-                if (p.x < 0) p.x += 1;
-                if (p.x > 1) p.x -= 1;
+                ion.rotation += ion.rotSpeed;
                 
-                // Occasional sparkle - random bright moments
-                if (!p.sparkle && Math.random() < 0.0003) {
-                    p.sparkle = true;
-                    p.sparkleTime = 0;
-                    p.sparkleDuration = 0.6 + Math.random() * 1.2;
-                }
-                if (p.sparkle) {
-                    p.sparkleTime += 0.016;
-                    if (p.sparkleTime > p.sparkleDuration) {
-                        p.sparkle = false;
-                    }
-                }
+                // Draw the faceted polygon
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(ion.rotation);
                 
-                var fadeIn = p.life < 0.3 ? p.life / 0.3 : 1;
-                var fadeOut = p.life > p.maxLife - 0.5 ? (p.maxLife - p.life) / 0.5 : 1;
-                var fadeRatio = Math.min(fadeIn, fadeOut);
-                
-                var sparkleBoost = p.sparkle ? (1 + Math.sin(p.sparkleTime / p.sparkleDuration * Math.PI) * 3.5) : 1;
-                var alpha = p.alpha * fadeRatio * sparkleBoost;
-                
-                if (alpha < 0.003) return;
-                
-                var px = p.x * w;
-                var py = p.y * h;
-                
-                // Soft outer glow
-                var glowSize = p.size * (p.sparkle ? 8 : 4);
-                var glow = ctx.createRadialGradient(px, py, 0, px, py, glowSize);
-                var cr = p.color.r, cg = p.color.g, cb = p.color.b;
-                glow.addColorStop(0, 'rgba(' + cr + ',' + cg + ',' + cb + ',' + (alpha * 0.9) + ')');
-                glow.addColorStop(0.3, 'rgba(' + cr + ',' + cg + ',' + cb + ',' + (alpha * 0.25) + ')');
-                glow.addColorStop(1, 'rgba(' + cr + ',' + cg + ',' + cb + ',0)');
-                
-                ctx.fillStyle = glow;
+                // Build polygon path
                 ctx.beginPath();
-                ctx.arc(px, py, glowSize, 0, Math.PI * 2);
+                var first = true;
+                for (var i = 0; i < ion.verts.length; i++) {
+                    var v = ion.verts[i];
+                    var vx = Math.cos(v.a) * v.r;
+                    var vy = Math.sin(v.a) * v.r;
+                    if (first) { ctx.moveTo(vx, vy); first = false; }
+                    else ctx.lineTo(vx, vy);
+                }
+                ctx.closePath();
+                
+                // Base metallic fill - subtle
+                var b = ion.tone.base;
+                ctx.fillStyle = 'rgba(' + b[0] + ',' + b[1] + ',' + b[2] + ',0.18)';
                 ctx.fill();
                 
-                // Sharp core dot
-                var coreAlpha = p.sparkle ? alpha * 1.8 : alpha * 0.8;
-                ctx.fillStyle = 'rgba(' + (Math.min(cr + 30, 255)) + ',' + (Math.min(cg + 30, 255)) + ',' + (Math.min(cb + 30, 255)) + ',' + coreAlpha + ')';
-                ctx.beginPath();
-                ctx.arc(px, py, p.size * 0.35, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            function drawAmbientGlow(progress) {
-                // Single, very subtle warm glow - not a wave, just a soft presence
-                var gy = h * (0.55 + progress * 0.15);
-                var gradient = ctx.createRadialGradient(w * 0.5, gy, 0, w * 0.5, gy, h * 0.7);
-                gradient.addColorStop(0, 'rgba(180,140,80,0.025)');
-                gradient.addColorStop(0.5, 'rgba(180,140,80,0.008)');
-                gradient.addColorStop(1, 'rgba(180,140,80,0)');
+                // Sharp edge stroke
+                ctx.strokeStyle = 'rgba(' + b[0] + ',' + b[1] + ',' + b[2] + ',0.35)';
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
                 
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, w, h);
+                // Specular highlight - a small bright spot inside the polygon
+                // representing light hitting the metal facet
+                var hl = ion.tone.highlight;
+                var hlX = Math.cos(ion.hlAngle) * 3;
+                var hlY = Math.sin(ion.hlAngle) * 3;
+                
+                var hlGrad = ctx.createRadialGradient(hlX, hlY, 0, hlX, hlY, 5);
+                hlGrad.addColorStop(0, 'rgba(' + hl[0] + ',' + hl[1] + ',' + hl[2] + ',' + (0.70 * ion.hlIntensity) + ')');
+                hlGrad.addColorStop(0.3, 'rgba(' + hl[0] + ',' + hl[1] + ',' + hl[2] + ',' + (0.25 * ion.hlIntensity) + ')');
+                hlGrad.addColorStop(1, 'rgba(' + hl[0] + ',' + hl[1] + ',' + hl[2] + ',0)');
+                
+                ctx.fillStyle = hlGrad;
+                ctx.beginPath();
+                ctx.arc(hlX, hlY, 5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
             }
             
             function resize() {
@@ -1282,20 +1260,18 @@ ANIMATIONS ============ */
                 isMobile = w < 768;
                 canvas.width = w;
                 canvas.height = h;
-                initParticles();
+                initIons();
             }
             
             function animate() {
                 ctx.clearRect(0, 0, w, h);
-                time += 0.005;
+                time += 0.006;
                 
                 var sp = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scroll-progress')) || 0;
                 smoothProgress += (sp - smoothProgress) * 0.03;
                 
-                drawAmbientGlow(smoothProgress);
-                
-                for (var i = 0; i < particles.length; i++) {
-                    drawParticle(particles[i], smoothProgress);
+                for (var i = 0; i < ions.length; i++) {
+                    drawIon(ions[i], smoothProgress);
                 }
                 
                 requestAnimationFrame(animate);
@@ -1313,17 +1289,15 @@ ANIMATIONS ============ */
             var ticking = false;
             
             function updateScroll() {
-                var scrollTop = window.scrollY || document.documentElement.scrollTop;
-                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
-                var progress = docHeight > 0 ? Math.min(Math.max(scrollTop / docHeight, 0), 1) : 0;
+                var st = window.scrollY || document.documentElement.scrollTop;
+                var dh = document.documentElement.scrollHeight - window.innerHeight;
+                var progress = dh > 0 ? Math.min(Math.max(st / dh, 0), 1) : 0;
                 
                 if (progressBar) progressBar.style.width = (progress * 100) + '%';
                 
                 if (video && video.duration && !video.seeking) {
-                    var targetTime = progress * video.duration;
-                    if (Math.abs(video.currentTime - targetTime) > 0.2) {
-                        video.currentTime = targetTime;
-                    }
+                    var t = progress * video.duration;
+                    if (Math.abs(video.currentTime - t) > 0.2) video.currentTime = t;
                 }
                 
                 document.documentElement.style.setProperty('--scroll-progress', progress);
@@ -1341,11 +1315,7 @@ ANIMATIONS ============ */
             updateScroll();
         })();
 
-SCROLL REVEAL ANIMATIONS ============
-        (function() {
-            var revealElements = document.querySelectorAll('.reveal');
-            if ('IntersectionObserver' in window) {
-                var revealObserver = new IntersectionObserver(function(entries) {
+bserver = new IntersectionObserver(function(entries) {
                     entries.forEach(function(entry) {
                         if (entry.isIntersecting) {
                             entry.target.classList.add('visible');
