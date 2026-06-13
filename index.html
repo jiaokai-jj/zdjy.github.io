@@ -1187,123 +1187,211 @@
     </div>
 
     <script>
-                                        // ============ GEOMETRIC LINES BACKGROUND ============
+                                        // ============ ORBITAL WIREFRAME BACKGROUND ============
 (function() {
     var canvas = document.getElementById('bgCanvas');
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
-    var w, h, time = 0;
-    function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
-    window.addEventListener('resize', resize); resize();
+    var w, h, cx, cy, time = 0;
+    var mouseX = 0.5, mouseY = 0.5, targetX = 0.5, targetY = 0.5;
     
-    // 网格 - 更密集
-    var cols = 16, rows = 10, nodes = [];
-    function initNodes() {
+    function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+        cx = w / 2; cy = h / 2;
+    }
+    window.addEventListener('resize', resize);
+    document.addEventListener('mousemove', function(e) {
+        targetX = e.clientX / w;
+        targetY = e.clientY / h;
+    });
+    resize();
+    
+    // 中心圆环 - 4层同心环
+    var rings = [];
+    function createRings() {
+        rings = [];
+        var ringDefs = [
+            {r: 80, pts: 48, speed: 0.6},   // 内环
+            {r: 140, pts: 60, speed: 0.45},  // 中内环
+            {r: 210, pts: 72, speed: 0.3},   // 中外环
+            {r: 290, pts: 84, speed: 0.18},  // 外环
+        ];
+        for (var ri = 0; ri < ringDefs.length; ri++) {
+            var rd = ringDefs[ri];
+            var ring = [];
+            for (var i = 0; i < rd.pts; i++) {
+                ring.push({
+                    angle: (i / rd.pts) * Math.PI * 2,
+                    baseR: rd.r,
+                    phase: Math.random() * Math.PI * 2,
+                    pulse: 0.3 + Math.random() * 0.7,
+                });
+            }
+            rings.push({ points: ring, speed: rd.speed });
+        }
+    }
+    createRings();
+    
+    // 背景网格
+    var cols = 14, rows = 9, nodes = [];
+    function initGrid() {
         nodes = [];
         for (var r = 0; r < rows; r++)
             for (var c = 0; c < cols; c++)
                 nodes.push({x:(c+1)/(cols+1)*w, y:(r+1)/(rows+1)*h,
-                    dx:(Math.random()-0.5)*30, dy:(Math.random()-0.5)*30,
-                    ph:Math.random()*Math.PI*2, sp:0.2+Math.random()*0.6, sz:0.5+Math.random()*2});
+                    dx:(Math.random()-0.5)*25, dy:(Math.random()-0.5)*25,
+                    ph:Math.random()*Math.PI*2, sp:0.2+Math.random()*0.5, sz:0.4+Math.random()*1.2});
     }
-    initNodes();
+    initGrid();
     
-    // 复杂几何体 - 6个不同多面体
-    var shapes = [];
-    function createShape(verts, cx, cy) {
-        return {verts:verts, cx:cx, cy:cy, rx:Math.random()*Math.PI*2, ry:Math.random()*Math.PI*2, rz:Math.random()*Math.PI*2,
-            sx:0.004+Math.random()*0.006, sy:0.005+Math.random()*0.007, sz:0.003+Math.random()*0.005};
+    // 6个小几何体散布四周
+    var sideShapes = [];
+    for (var i = 0; i < 6; i++) {
+        var verts = [], vc = 5 + Math.floor(Math.random() * 6);
+        for (var j = 0; j < vc; j++) {
+            var a = (j/vc)*Math.PI*2, r = 30+Math.random()*35;
+            verts.push({a:a, r:r, h:(Math.random()-0.5)*r});
+        }
+        var angle = (i/6)*Math.PI*2 + 0.3;
+        var dist = 0.35 + Math.random() * 0.2;
+        sideShapes.push({verts:verts,
+            cx: cx + Math.cos(angle)*Math.min(w,h)*dist,
+            cy: cy + Math.sin(angle)*Math.min(w,h)*dist*0.6,
+            rx:Math.random()*Math.PI, ry:Math.random()*Math.PI, rz:Math.random()*Math.PI,
+            sx:0.003+Math.random()*0.004, sy:0.003+Math.random()*0.005, sz:0.002+Math.random()*0.003});
     }
-    // 八面体
-    var octa = [];
-    for (var i=0;i<6;i++) { var a=(i/6)*Math.PI*2, r=80; octa.push({a:a,r:r,h:0}); }
-    octa.push({a:0,r:0,h:80}); octa.push({a:0,r:0,h:-80});
-    shapes.push(createShape(octa, w*0.2, h*0.3));
-    // 十二面体简化
-    var dodec = [];
-    for (var i=0;i<12;i++) { var a=(i/12)*Math.PI*2, r=90+Math.random()*20; dodec.push({a:a,r:r,h:(Math.random()-0.5)*60}); }
-    shapes.push(createShape(dodec, w*0.5, h*0.5));
-    // 六边形柱
-    var hex = [];
-    for (var i=0;i<6;i++) { var a=(i/6)*Math.PI*2; hex.push({a:a,r:70,h:50}); hex.push({a:a,r:70,h:-50}); }
-    shapes.push(createShape(hex, w*0.75, h*0.35));
-    // 星形
-    var star = [];
-    for (var i=0;i<10;i++) { var a=(i/10)*Math.PI*2, r=i%2==0?90:45; star.push({a:a,r:r,h:(Math.random()-0.5)*40}); }
-    shapes.push(createShape(star, w*0.35, h*0.7));
-    // 二十面体简化
-    var ico = [];
-    for (var i=0;i<16;i++) { var a=(i/16)*Math.PI*2, r=65+Math.random()*25; ico.push({a:a,r:r,h:(Math.random()-0.5)*70}); }
-    shapes.push(createShape(ico, w*0.6, h*0.75));
-    // 螺旋
-    var spiral = [];
-    for (var i=0;i<20;i++) { var a=(i/20)*Math.PI*6, r=30+i*5; spiral.push({a:a,r:r,h:(i-10)*8}); }
-    shapes.push(createShape(spiral, w*0.15, h*0.55));
     
-    function proj(x,y,z) { var s=500/(500+z); return {x:x*s, y:y*s}; }
+    function proj(x,y,z) { var s=450/(450+z); return {x:x*s, y:y*s}; }
     
     function draw() {
         time += 0.012; ctx.clearRect(0,0,w,h);
         
-        var colors = [
-            'rgba(80,160,255,', 'rgba(150,100,245,', 'rgba(50,200,235,',
-            'rgba(180,80,240,', 'rgba(40,140,255,', 'rgba(100,200,255,'
-        ];
+        // 平滑鼠标
+        mouseX += (targetX - mouseX) * 0.03;
+        mouseY += (targetY - mouseY) * 0.03;
         
-        // 网格线 - 更亮
-        ctx.strokeStyle = 'rgba(80,150,230,0.04)'; ctx.lineWidth = 1;
+        // 鼠标Y控制散开 (0=紧聚, 1=散开)
+        var spread = targetY;  // 上=紧, 下=散
+        // 鼠标X控制轻微旋转偏移
+        var tilt = (targetX - 0.5) * 0.5;
+        
+        // ---- 背景网格 ----
+        ctx.strokeStyle = 'rgba(60,120,200,0.03)'; ctx.lineWidth = 0.8;
         for (var r=0;r<rows;r++) for (var c=0;c<cols;c++) {
             var n=nodes[r*cols+c];
-            var nx=n.x+Math.sin(time*n.sp+n.ph)*18;
-            var ny=n.y+Math.cos(time*n.sp*0.7+n.ph)*25;
+            var nx=n.x+Math.sin(time*n.sp+n.ph)*14;
+            var ny=n.y+Math.cos(time*n.sp*0.7+n.ph)*18;
             if (c<cols-1) {
                 var nr=nodes[r*cols+c+1];
                 ctx.beginPath(); ctx.moveTo(nx,ny);
-                ctx.lineTo(nr.x+Math.sin(time*nr.sp+nr.ph)*18, nr.y+Math.cos(time*nr.sp*0.7+nr.ph)*25);
+                ctx.lineTo(nr.x+Math.sin(time*nr.sp+nr.ph)*14, nr.y+Math.cos(time*nr.sp*0.7+nr.ph)*18);
                 ctx.stroke();
             }
             if (r<rows-1) {
                 var nd=nodes[(r+1)*cols+c];
                 ctx.beginPath(); ctx.moveTo(nx,ny);
-                ctx.lineTo(nd.x+Math.sin(time*nd.sp+nd.ph)*18, nd.y+Math.cos(time*nd.sp*0.7+nd.ph)*25);
+                ctx.lineTo(nd.x+Math.sin(time*nd.sp+nd.ph)*14, nd.y+Math.cos(time*nd.sp*0.7+nd.ph)*18);
                 ctx.stroke();
             }
-            var g=ctx.createRadialGradient(nx,ny,0,nx,ny,n.sz*5);
-            g.addColorStop(0,'rgba(200,225,255,'+(0.3+Math.sin(time*2.5+n.ph)*0.12)+')');
-            g.addColorStop(1,'rgba(0,0,0,0)');
-            ctx.fillStyle=g; ctx.beginPath(); ctx.arc(nx,ny,n.sz*5,0,Math.PI*2); ctx.fill();
         }
         
-        // 几何体 - 6个更亮
-        for (var s=0;s<shapes.length;s++) {
-            var sh=shapes[s]; sh.rx+=sh.sx; sh.ry+=sh.sy; sh.rz+=sh.sz;
-            var cosY=Math.cos(sh.ry), sinY=Math.sin(sh.ry), cosX=Math.cos(sh.rx), sinX=Math.sin(sh.rx);
-            var col=colors[s], alpha=0.08+Math.sin(time*0.4+s)*0.04;
+        // ---- 中心圆形线框 ----
+        var ringColors = [
+            'rgba(100,200,255,',   // 亮蓝
+            'rgba(160,120,255,',   // 紫
+            'rgba(60,220,200,',    // 青
+            'rgba(200,100,230,',   // 粉紫
+        ];
+        
+        for (var ri = 0; ri < rings.length; ri++) {
+            var ring = rings[ri];
+            var alpha = 0.12 + (ri === 0 ? 0.08 : 0.02);
+            var rColor = ringColors[ri];
             
-            for (var j=0;j<sh.verts.length;j++) {
+            for (var i = 0; i < ring.points.length; i++) {
+                var p = ring.points[i];
+                var effectiveR = p.baseR * (0.7 + spread * 0.9);
+                var wob = Math.sin(time * ring.speed * 2 + p.phase) * (3 + spread * 8);
+                var r = effectiveR + wob;
+                
+                // 缓动半径
+                p.currentR = p.currentR || p.baseR;
+                p.currentR += (r - p.currentR) * 0.05;
+                
+                var a = p.angle + time * ring.speed * 0.3 + tilt * 0.6;
+                var x = cx + Math.cos(a) * p.currentR;
+                var y = cy + Math.sin(a) * p.currentR * 0.65;
+                
+                // 连线到邻近点
+                var np = ring.points[(i + 1) % ring.points.length];
+                var na = np.angle + time * ring.speed * 0.3 + tilt * 0.6;
+                np.currentR = np.currentR || np.baseR;
+                np.currentR += ((np.baseR * (0.7 + spread * 0.9) + Math.sin(time*ring.speed*2+np.phase)*(3+spread*8)) - np.currentR) * 0.05;
+                var nx = cx + Math.cos(na) * np.currentR;
+                var ny = cy + Math.sin(na) * np.currentR * 0.65;
+                
+                ctx.strokeStyle = rColor + (alpha + Math.sin(time*3+p.phase)*0.03) + ')';
+                ctx.lineWidth = ri === 0 ? 1.5 : (ri < 3 ? 1 : 0.6);
+                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny);
+                ctx.stroke();
+                
+                // 跨环连线 (只连相邻环)
+                if (ri < rings.length - 1 && i % 3 === 0) {
+                    var nr = rings[ri + 1];
+                    var ni = Math.floor(i / ring.points.length * nr.points.length);
+                    var cp = nr.points[ni % nr.points.length];
+                    cp.currentR = cp.currentR || cp.baseR;
+                    cp.currentR += ((cp.baseR * (0.7 + spread * 0.9) + Math.sin(time*nr.speed*2+cp.phase)*(3+spread*8)) - cp.currentR) * 0.05;
+                    var ca = cp.angle + time * nr.speed * 0.3 + tilt * 0.6;
+                    var cx2 = cx + Math.cos(ca) * cp.currentR;
+                    var cy2 = cy + Math.sin(ca) * cp.currentR * 0.65;
+                    
+                    ctx.strokeStyle = rColor + '0.04)';
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(cx2, cy2);
+                    ctx.stroke();
+                }
+                
+                // 光点
+                if (i % 3 === 0) {
+                    var g = ctx.createRadialGradient(x, y, 0, x, y, 3);
+                    g.addColorStop(0, rColor + '0.7)');
+                    g.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = g;
+                    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+        }
+        
+        // ---- 散布小几何体 ----
+        var scColors = ['rgba(70,150,230,','rgba(140,100,235,','rgba(50,210,210,','rgba(180,80,235,','rgba(90,180,245,','rgba(160,140,245,'];
+        for (var s = 0; s < sideShapes.length; s++) {
+            var sh = sideShapes[s]; sh.rx += sh.sx; sh.ry += sh.sy; sh.rz += sh.sz;
+            var cosY=Math.cos(sh.ry), sinY=Math.sin(sh.ry), cosX=Math.cos(sh.rx), sinX=Math.sin(sh.rx);
+            var col = scColors[s], alpha = 0.06 + Math.sin(time*0.5+s)*0.02;
+            
+            for (var j = 0; j < sh.verts.length; j++) {
                 var v1=sh.verts[j], v2=sh.verts[(j+1)%sh.verts.length];
                 var x1=Math.cos(v1.a)*v1.r, z1=Math.sin(v1.a)*v1.r;
                 var rx1=x1*cosY-z1*sinY, rz1=x1*sinY+z1*cosY;
                 var ry1=v1.h*cosX-rz1*sinX;
-                var p1=proj(rx1+sh.cx,ry1+sh.cy,rz1*cosX+v1.h*sinX+250);
+                var p1=proj(rx1+sh.cx, ry1+sh.cy, rz1*cosX+v1.h*sinX+200);
                 
                 var x2=Math.cos(v2.a)*v2.r, z2=Math.sin(v2.a)*v2.r;
                 var rx2=x2*cosY-z2*sinY, rz2=x2*sinY+z2*cosY;
                 var ry2=v2.h*cosX-rz2*sinX;
-                var p2=proj(rx2+sh.cx,ry2+sh.cy,rz2*cosX+v2.h*sinX+250);
+                var p2=proj(rx2+sh.cx, ry2+sh.cy, rz2*cosX+v2.h*sinX+200);
                 
-                ctx.strokeStyle=col+alpha+')'; ctx.lineWidth=1.5;
+                ctx.strokeStyle=col+alpha+')'; ctx.lineWidth=0.8;
                 ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
-                
-                var gg=ctx.createRadialGradient(p1.x,p1.y,0,p1.x,p1.y,4);
-                gg.addColorStop(0,col+'0.5)'); gg.addColorStop(1,'rgba(0,0,0,0)');
-                ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(p1.x,p1.y,4,0,Math.PI*2); ctx.fill();
             }
         }
+        
         requestAnimationFrame(draw);
     }
     draw();
-    window.addEventListener('resize', function() { resize(); initNodes(); });
+    window.addEventListener('resize', function() { resize(); initGrid(); createRings(); });
 })();
 
 // ============ SCROLL REVEAL ANIMATIONS ============
