@@ -483,9 +483,9 @@
             backdrop-filter: var(--glass-blur);
             -webkit-backdrop-filter: var(--glass-blur);
             border: 1px solid var(--glass-border);
-            border-radius: var(--radius-lg);
+            clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
             padding: 32px 28px;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
@@ -566,27 +566,19 @@
             transform: translateY(-4px);
             border-color: var(--border-active);
             box-shadow: 0 12px 36px rgba(0,0,0,0.35), 0 0 0 1px rgba(99,150,255,0.08);
-        }.video-thumb {
-            width: 100%; height: 100px;
-            background: rgba(139,92,246,0.08);
-            border-radius: var(--radius);
-            display: flex; align-items: center; justify-content: center;
-            margin-bottom: 14px;
-            border: 1px solid var(--border-subtle);
-            transition: background 0.3s;
-        }
-        .video-card:hover .video-thumb { background: rgba(139,92,246,0.15); }
-        .play-icon {
-            width: 44px; height: 44px;
-            border-radius: 50%;
-            background: var(--gradient-blue-purple);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; color: #fff;
-            box-shadow: 0 6px 20px rgba(139,92,246,0.4);
-            transition: transform 0.3s;
-        }
-        .video-card:hover .play-icon { transform: scale(1.1); }
-        .video-card h4 { font-size: 0.88rem; color: var(--text-primary); }
+        }.video-thumb { position: relative; width: 100%; height: 130px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; overflow: hidden; border: 1px solid var(--border-subtle); transition: all 0.4s; }
+        .video-card:hover .video-thumb { border-color: var(--border-active); }
+        .video-thumb-bg { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(80,140,255,0.1), rgba(140,80,245,0.1), rgba(50,200,230,0.08)); border-radius: var(--radius); animation: thumbShift 4s ease-in-out infinite; background-size: 200% 200%; }
+        @keyframes thumbShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .video-thumb-lines { position: absolute; inset: 0; opacity: 0.15; background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(99,150,255,0.08) 8px, rgba(99,150,255,0.08) 9px); border-radius: var(--radius); transition: opacity 0.5s; }
+        .video-card:hover .video-thumb-lines { opacity: 0.35; }
+        .video-tag-badge { position: absolute; top: 8px; right: 8px; background: rgba(99,150,255,0.12); border: 1px solid rgba(99,150,255,0.2); color: #8098e0; font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 50px; letter-spacing: 0.5px; backdrop-filter: blur(8px); z-index: 2; }
+        .play-btn-ring { position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; transition: transform 0.4s cubic-bezier(0.16,1,0.3,1); z-index: 1; }
+        .video-card:hover .play-btn-ring { transform: scale(1.12); }
+        .play-btn-pulse { position: absolute; inset: -8px; border-radius: 50%; border: 2px solid rgba(139,92,246,0.3); opacity: 0; }
+        .video-card:hover .play-btn-pulse { animation: pulseRing 1.4s ease-out infinite; }
+        @keyframes pulseRing { 0% { transform: scale(0.7); opacity: 0.7; } 100% { transform: scale(1.8); opacity: 0; } }
+        .play-btn-core { width: 42px; height: 42px; border-radius: 50%; background: var(--gradient-blue-purple); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; z-index: 1; box-shadow: 0 6px 24px rgba(139,92,246,0.4); transition: all 0.3s; }.video-card h4 { font-size: 0.88rem; color: var(--text-primary); }
 
         /* ============ PRICING ============ */
         .pricing-grid {
@@ -1018,19 +1010,19 @@
                 </div>
                 <div class="features-grid">
                     <div class="feature-card reveal">
-                        <div class="feature-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg></div>
+                        <div class="feature-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 4"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="6" r="1.5" fill="currentColor"/><circle cx="6" cy="18" r="1.5" fill="currentColor"/></svg></div>
                         <h3>智能选股</h3><p>AI算法实时扫描市场，精准捕捉短线机会。</p>
                     </div>
                     <div class="feature-card feature-offset-1 reveal reveal-delay-1">
-                        <div class="feature-icon"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+                        <div class="feature-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="7,10 12,5 17,10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="5" y="12" width="14" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="16" x2="9" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="14" x2="12" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="15" y1="16" x2="15" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
                         <h3>极速交易</h3><p>毫秒级下单速度，抢占最佳入场时机。</p>
                     </div>
                     <div class="feature-card feature-offset-2 reveal reveal-delay-2">
-                        <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                        <div class="feature-icon"><svg viewBox="0 0 24 24"><polygon points="12,2 22,7 22,13 12,22 2,13 2,7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><polygon points="12,8 16,10 16,14 12,17 8,14 8,10" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg></div>
                         <h3>风险控制</h3><p>智能止损止盈，严格风控保障资金安全。</p>
                     </div>
                     <div class="feature-card feature-offset-3 reveal reveal-delay-3">
-                        <div class="feature-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+                        <div class="feature-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="17" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="8.5" y1="7.5" x2="10.5" y2="14" stroke="currentColor" stroke-width="1"/><line x1="16.5" y1="7" x2="13.5" y2="13.5" stroke="currentColor" stroke-width="1"/><line x1="17" y1="16.5" x2="15.5" y2="16" stroke="currentColor" stroke-width="1"/></svg></div>
                         <h3>数据分析</h3><p>多维度技术指标，辅助决策更精准。</p>
                     </div>
                 </div>
@@ -1067,20 +1059,52 @@
                 <p class="section-subtitle reveal">点击下方卡片即可播放对应教学视频</p>
                 <div class="video-grid">
                     <div class="video-card reveal" onclick="playLocalVideo('videos/install.mp4')">
-                        <div class="video-thumb"><div class="play-icon">▶</div></div>
-                        <h4>📥 软件安装教程</h4>
+                        <div class="video-thumb">
+                            <div class="video-thumb-bg"></div>
+                            <div class="video-thumb-lines"></div>
+                            <div class="video-tag-badge">入门必看</div>
+                            <div class="play-btn-ring">
+                                <div class="play-btn-pulse"></div>
+                                <div class="play-btn-core">▶</div>
+                            </div>
+                        </div>
+                        <h4>安装教程</h4>
                     </div>
                     <div class="video-card reveal reveal-delay-1" onclick="playLocalVideo('videos/strategy.mp4')">
-                        <div class="video-thumb"><div class="play-icon">▶</div></div>
-                        <h4>⚙️ 策略配置指南</h4>
+                        <div class="video-thumb">
+                            <div class="video-thumb-bg"></div>
+                            <div class="video-thumb-lines"></div>
+                            <div class="video-tag-badge">核心教程</div>
+                            <div class="play-btn-ring">
+                                <div class="play-btn-pulse"></div>
+                                <div class="play-btn-core">▶</div>
+                            </div>
+                        </div>
+                        <h4>策略讲解</h4>
                     </div>
                     <div class="video-card reveal reveal-delay-2" onclick="playLocalVideo('videos/trading.mp4')">
-                        <div class="video-thumb"><div class="play-icon">▶</div></div>
-                        <h4>📈 实战交易演示</h4>
+                        <div class="video-thumb">
+                            <div class="video-thumb-bg"></div>
+                            <div class="video-thumb-lines"></div>
+                            <div class="video-tag-badge">实战操作</div>
+                            <div class="play-btn-ring">
+                                <div class="play-btn-pulse"></div>
+                                <div class="play-btn-core">▶</div>
+                            </div>
+                        </div>
+                        <h4>实盘演示</h4>
                     </div>
                     <div class="video-card reveal reveal-delay-3" onclick="playLocalVideo('videos/advanced.mp4')">
-                        <div class="video-thumb"><div class="play-icon">▶</div></div>
-                        <h4>🧠 高级功能解析</h4>
+                        <div class="video-thumb">
+                            <div class="video-thumb-bg"></div>
+                            <div class="video-thumb-lines"></div>
+                            <div class="video-tag-badge">进阶技巧</div>
+                            <div class="play-btn-ring">
+                                <div class="play-btn-pulse"></div>
+                                <div class="play-btn-core">▶</div>
+                            </div>
+                        </div>
+                        <h4>高级功能</h4>
                     </div>
                 </div>
             </section>
@@ -1197,106 +1221,28 @@
     </div>
 
     <script>
-                                        // ============ ORBIT RING SYSTEM ============
-(function() {
-    var canvas = document.getElementById('bgCanvas');
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
-    var w, h, cx, cy, time = 0;
-    var mouseY = 0.5, targetMouseY = 0.5;
-    
-    function resize() { w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight; cx=w/2; cy=h/2; }
-    window.addEventListener('resize', resize); resize();
-    document.addEventListener('mousemove', function(e) { targetMouseY = e.clientY / h; });
-    document.addEventListener('touchmove', function(e) { if(e.touches.length) targetMouseY = e.touches[0].clientY / h; }, {passive:true});
-    
-    var cols=14, rows=8, nodes=[];
-    function initNodes() {
-        nodes=[];
-        for(var r=0;r<rows;r++) for(var c=0;c<cols;c++)
-            nodes.push({x:(c+1)/(cols+1)*w, y:(r+1)/(rows+1)*h,
-                dx:(Math.random()-0.5)*20, dy:(Math.random()-0.5)*20,
-                ph:Math.random()*Math.PI*2, sp:0.2+Math.random()*0.5});
-    }
-    initNodes();
-    
-    function draw() {
-        time += 0.012;
-        mouseY += (targetMouseY - mouseY) * 0.05;
-        var spread = mouseY;
-        var maxR = Math.min(w,h) * 0.42;
-        var baseR = maxR * (0.3 + spread * 0.7);
-        ctx.clearRect(0,0,w,h);
-        
-        // 中央线环 - 12层，随鼠标聚散
-        var colors = [[80,160,255],[140,105,245],[55,210,240],[180,90,255],[90,170,255],[65,195,245],[160,120,255],[85,205,245],[125,155,255],[70,185,250],[150,115,250],[95,190,248]];
-        var layers = 8 + Math.floor(spread * 8);
-        for(var ri=0; ri<layers; ri++) {
-            var rFrac = ri / (layers-1);
-            var rVal = baseR * (0.3 + rFrac * 1.7);
-            var segs = 48 + ri * 10;
-            var alpha = 0.08 + rFrac * 0.25 * spread + 0.06;
-            var c = colors[ri % colors.length];
-            
-            ctx.strokeStyle = 'rgba('+c[0]+','+c[1]+','+c[2]+','+alpha+')';
-            ctx.lineWidth = 0.6 + rFrac * 0.8;
-            
-            for(var s=0; s<segs; s++) {
-                var a1 = (s/segs)*Math.PI*2 + time*(0.4+ri*0.06);
-                var a2 = a1 + (Math.PI*2/segs)*(0.6+spread*0.3);
-                var wob = Math.sin(time*1.8+s*0.5+ri)*2.5*(1+spread);
-                ctx.beginPath();
-                ctx.arc(cx, cy, rVal+wob, a1, a2);
-                ctx.stroke();
-            }
-        }
-        
-        // 径向光线，随鼠标向外扩散
-        var rays = 24 + Math.floor(spread * 18);
-        for(var i=0; i<rays; i++) {
-            var angle = (i/rays)*Math.PI*2 + time*0.15;
-            var innerR = baseR * 0.2;
-            var outerR = baseR * (1.3 + spread * 3 + Math.sin(time*2+i)*0.3*spread);
-            var x1=cx+Math.cos(angle)*innerR, y1=cy+Math.sin(angle)*innerR;
-            var x2=cx+Math.cos(angle)*outerR, y2=cy+Math.sin(angle)*outerR;
-            
-            var rc = [[80,160,255],[140,105,245],[55,210,240]][i%3];
-            var alpha = 0.03 + spread*0.07;
-            var grad = ctx.createLinearGradient(x1,y1,x2,y2);
-            grad.addColorStop(0,'rgba('+rc[0]+','+rc[1]+','+rc[2]+',0)');
-            grad.addColorStop(0.4,'rgba('+rc[0]+','+rc[1]+','+rc[2]+','+alpha+')');
-            grad.addColorStop(1,'rgba('+rc[0]+','+rc[1]+','+rc[2]+',0)');
-            ctx.strokeStyle=grad; ctx.lineWidth=0.6;
-            ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-        }
-        
-        // 飘浮微光点
-        for(var i=0; i<20; i++) {
-            var a=(i/20)*Math.PI*2+time*0.6;
-            var r=baseR*(0.5+Math.sin(time+i)*0.4);
-            var px=cx+Math.cos(a)*r, py=cy+Math.sin(a)*r*0.7;
-            var g=ctx.createRadialGradient(px,py,0,px,py,4);
-            g.addColorStop(0,'rgba(200,225,255,0.4)'); g.addColorStop(1,'rgba(0,0,0,0)');
-            ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,4,0,Math.PI*2); ctx.fill();
-        }
-        
-        // 网格
-        ctx.strokeStyle='rgba(80,150,230,0.02)'; ctx.lineWidth=0.5;
-        for(var r=0;r<rows;r++) for(var c=0;c<cols;c++) {
-            var n=nodes[r*cols+c];
-            var nx=n.x+Math.sin(time*n.sp+n.ph)*10;
-            var ny=n.y+Math.cos(time*n.sp*0.7+n.ph)*15;
-            if(c<cols-1){var nr=nodes[r*cols+c+1]; ctx.beginPath(); ctx.moveTo(nx,ny);
-                ctx.lineTo(nr.x+Math.sin(time*nr.sp+nr.ph)*10,nr.y+Math.cos(time*nr.sp*0.7+nr.ph)*15); ctx.stroke();}
-            if(r<rows-1){var nd=nodes[(r+1)*cols+c]; ctx.beginPath(); ctx.moveTo(nx,ny);
-                ctx.lineTo(nd.x+Math.sin(time*nd.sp+nd.ph)*10,nd.y+Math.cos(time*nd.sp*0.7+nd.ph)*15); ctx.stroke();}
-        }
-        
-        requestAnimationFrame(draw);
-    }
-    draw();
-    window.addEventListener('resize', function(){resize();initNodes();});
-})();
+                                        // ============ ORBIT RING - DRAG TO SPLIT ============
+(function(){var c=document.getElementById('bgCanvas');if(!c)return;var x=c.getContext('2d');var w,h,cx,cy,t=0,mx=.5,my=.5,tmx=.5,tmy=.5;var drag=!1,dx=0,dy=0,dox=0,doy=0,sf=0,ts=0,sa=0,ta=0;
+function rs(){w=c.width=window.innerWidth;h=c.height=window.innerHeight;cx=w/2;cy=h/2;}
+window.addEventListener('resize',rs);rs();
+document.addEventListener('mousemove',function(e){tmx=e.clientX/w;tmy=e.clientY/h;if(drag){dx=e.clientX;dy=e.clientY}});
+document.addEventListener('touchmove',function(e){if(e.touches.length){tmx=e.touches[0].clientX/w;tmy=e.touches[0].clientY/h;if(drag){dx=e.touches[0].clientX;dy=e.touches[0].clientY}}},{passive:!0});
+document.addEventListener('mousedown',function(e){drag=!0;dox=e.clientX;doy=e.clientY;dx=e.clientX;dy=e.clientY});
+document.addEventListener('touchstart',function(e){if(e.touches.length){drag=!0;dox=e.touches[0].clientX;doy=e.touches[0].clientY;dx=e.touches[0].clientX;dy=e.touches[0].clientY}});
+document.addEventListener('mouseup',function(){drag=!1});document.addEventListener('touchend',function(){drag=!1});
+var ps=[];
+function ip(){ps=[];var n=Math.floor(w*h/8000);for(var i=0;i<n;i++)ps.push({px:Math.random()*w,py:Math.random()*h,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,sz:.5+Math.random()*1.5,ph:Math.random()*Math.PI*2,sp:.3+Math.random()*.7,cl:[[80,160,255],[140,105,245],[55,210,240],[180,90,255],[100,180,255]][Math.floor(Math.random()*5)]})}
+ip();
+function dr(){t+=.012;mx+=(tmx-mx)*.04;my+=(tmy-my)*.04;
+if(drag){var dd=Math.sqrt((dx-dox)*(dx-dox)+(dy-doy)*(dy-doy));ts=Math.min(dd/Math.min(w,h),.8);ta=Math.atan2(dy-doy,dx-dox)}else ts=0;
+sf+=(ts-sf)*.08;sa+=(ta-sa)*.12;x.clearRect(0,0,w,h);
+for(var i=0;i<ps.length;i++){var p=ps[i];p.px+=p.vx+(mx-.5)*.15;p.py+=p.vy+(my-.5)*.15;if(p.px<-20)p.px=w+20;if(p.px>w+20)p.px=-20;if(p.py<-20)p.py=h+20;if(p.py>h+20)p.py=-20;var al=.15+Math.sin(t*p.sp+p.ph)*.1,cl=p.cl;var g=x.createRadialGradient(p.px,p.py,0,p.px,p.py,p.sz*6);g.addColorStop(0,'rgba('+cl[0]+','+cl[1]+','+cl[2]+','+al+')');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.beginPath();x.arc(p.px,p.py,p.sz*6,0,Math.PI*2);x.fill()}
+var br=Math.min(w,h)*.12,sr=Math.min(w,h)*sf*.45,cx2=cx+Math.cos(sa)*sr*.5,cy2=cy+Math.sin(sa)*sr*.5;
+var cls=[[80,160,255],[140,105,245],[55,210,240],[180,90,255],[90,170,255],[65,195,245],[160,120,255],[85,205,245],[125,155,255],[70,185,250],[150,115,250],[95,190,248]];var ly=10;
+for(var ri=0;ri<ly;ri++){var fr=ri/(ly-1),rv=br*(.4+fr*(1.5+sf*2.5)),sg=50+ri*12,al2=.06+fr*.22+sf*.1,cl2=cls[ri%cls.length];x.strokeStyle='rgba('+cl2[0]+','+cl2[1]+','+cl2[2]+','+al2+')';x.lineWidth=.5+fr*(1+sf);
+for(var s=0;s<sg;s++){var a1=(s/sg)*Math.PI*2+t*(.3+ri*.05)+sf*Math.cos(t+s)*.1,a2=a1+(Math.PI*2/sg)*(.5+sf*.4),wb=Math.sin(t*2+s*.4+ri)*2*(1+sf);x.beginPath();x.arc(cx2,cy2,rv+wb,a1,a2);x.stroke()}}
+var ry=28;for(var i=0;i<ry;i++){var an=(i/ry)*Math.PI*2,ir=br*.3,or=br*(1.2+sf*4+Math.sin(t*1.5+i)*.3*sf),x1=cx2+Math.cos(an)*ir,y1=cy2+Math.sin(an)*ir,x2=cx2+Math.cos(an)*or,y2=cy2+Math.sin(an)*or;var rc=[[80,160,255],[140,105,245],[55,210,240]][i%3],al3=.02+sf*.08;var gr=x.createLinearGradient(x1,y1,x2,y2);gr.addColorStop(0,'rgba('+rc[0]+','+rc[1]+','+rc[2]+',0)');gr.addColorStop(.5,'rgba('+rc[0]+','+rc[1]+','+rc[2]+','+al3+')');gr.addColorStop(1,'rgba('+rc[0]+','+rc[1]+','+rc[2]+',0)');x.strokeStyle=gr;x.lineWidth=.5;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke()}
+requestAnimationFrame(dr)}dr();window.addEventListener('resize',function(){rs();ip()})})();
 
 // ============ SCROLL REVEAL ANIMATIONS ============
         (function() {
