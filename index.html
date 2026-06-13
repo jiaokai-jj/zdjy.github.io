@@ -58,8 +58,8 @@
             width: auto; height: auto;
             transform: translate(-50%, -50%);
             object-fit: cover;
-            filter: blur(28px) brightness(0.08) saturate(0) contrast(0.7);
-            opacity: 0.22;
+            filter: blur(4px) brightness(0.35) saturate(0.6) contrast(0.8);
+            opacity: 0.45;
         }
         .video-overlay {
             position: fixed; top: 0; left: 0;
@@ -899,7 +899,7 @@
 <body>
     <!-- ============ VIDEO BACKGROUND ============ -->
     <div class="video-bg-container">
-        <video id="bgVideo" muted playsinline preload="auto" loop>
+        <video id="bgVideo" autoplay muted playsinline preload="auto" loop>
             <source src="videos/bg.mp4" type="video/mp4">
         </video>
     </div>
