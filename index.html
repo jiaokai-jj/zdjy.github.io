@@ -58,20 +58,20 @@
             width: auto; height: auto;
             transform: translate(-50%, -50%);
             object-fit: cover;
-            filter: blur(4px) brightness(0.35) saturate(0.6) contrast(0.8);
-            opacity: 0.45;
+            filter: blur(3px) brightness(0.6) saturate(0.8) contrast(0.9);
+            opacity: 0.7;
         }
         .video-overlay {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100vh;
             z-index: 1; pointer-events: none;
-            background: radial-gradient(ellipse at 50% 35%, rgba(6,8,16,0.5) 0%, rgba(1,2,5,0.97) 80%);
+            background: radial-gradient(ellipse at 50% 35%, rgba(6,8,16,0.2) 0%, rgba(1,2,5,0.6) 80%);
         }
         .video-vignette {
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100vh;
             z-index: 1; pointer-events: none;
-            box-shadow: inset 0 0 320px 180px rgba(0,0,3,0.96);
+            box-shadow: inset 0 0 160px 80px rgba(0,0,3,0.5);
         }
 
         /* ============ METAL ION CANVAS ============ */
