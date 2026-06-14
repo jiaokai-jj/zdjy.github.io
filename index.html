@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>睿欣科技 | 短线智能交易系统 v3.0</title>
+    <title>睿欣科技 | 短线智能交易系统 v2.0.0</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet">
@@ -68,7 +68,7 @@
         .section-title{font-family:var(--font-display);font-size:3rem;font-weight:900;letter-spacing:2px;text-align:center;margin-bottom:8px}
         .section-title-wrapper{text-align:center;margin-bottom:10px}
         .section-title-decor{display:block;width:80px;height:3px;border-radius:2px;margin:14px auto 8px;background:linear-gradient(90deg,transparent,rgba(80,160,220,0.6),transparent)}
-        .section-subtitle{text-align:center;color:var(--text-secondary);font-size:1rem;letter-spacing:1px;margin-top:6px;margin-bottom:8px}
+        .section-subtitle{text-align:center;color:var(--text-secondary);font-size:1rem;letter-spacing:1px;margin-top:6px;margin-bottom:16px}
         .version-tag{display:inline-block;padding:4px 14px;border-radius:50px;font-size:0.7rem;font-weight:600;letter-spacing:1.5px;color:var(--accent-cyan);background:rgba(70,170,210,0.08);border:1px solid rgba(70,170,210,0.15);margin-bottom:12px}
         .app-container{display:flex;min-height:100vh;position:relative;z-index:5}
         .sidebar{position:fixed;top:0;left:0;width:var(--sidebar-width);height:100vh;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border-right:1px solid var(--glass-border);display:flex;flex-direction:column;z-index:100;padding:24px 16px;box-shadow:2px 0 30px rgba(0,0,0,0.5)}
@@ -174,10 +174,10 @@
         .video-card:hover .video-thumb-lines{opacity:0.2}
         .video-card h4{font-size:0.88rem;color:var(--text-primary);margin-top:2px}
         .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:40px;align-items:start}
-        .pricing-card{position:relative;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);padding:36px 28px;text-align:center;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+        .pricing-card{position:relative;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);padding:44px 28px 36px;text-align:center;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);box-shadow:0 4px 20px rgba(0,0,0,0.2)}
         .pricing-card:hover{transform:translateY(-6px);box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 30px rgba(60,130,210,0.1);border-color:var(--border-glow)}
         .pricing-card.recommended{border-color:rgba(100,180,220,0.35);background:rgba(20,32,58,0.52);box-shadow:0 0 40px rgba(100,160,220,0.08)}
-        .pricing-badge{position:absolute;top:-18px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#d4b058,#f0d470);color:#0a1018;font-size:0.75rem;font-weight:700;padding:4px 18px;border-radius:20px;letter-spacing:0.5px}
+        .pricing-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#d4b058,#f0d470);color:#0a1018;font-size:0.75rem;font-weight:700;padding:4px 18px;border-radius:20px;letter-spacing:0.5px}
         .pricing-card h3{font-size:1.2rem;margin-bottom:10px;margin-top:8px}.pricing-price{font-size:2.2rem;font-weight:800;margin-bottom:6px}
         .pricing-features{list-style:none;margin:20px 0;padding:0}
         .pricing-features li{padding:8px 0;color:var(--text-secondary);font-size:0.88rem;border-bottom:1px solid var(--border-subtle)}
@@ -229,7 +229,7 @@
             .hero-stats{grid-template-columns:repeat(2,1fr)}
             .features-grid{grid-template-columns:repeat(2,1fr)}
             .video-grid{grid-template-columns:repeat(2,1fr)}
-            .pricing-grid{grid-template-columns:1fr;gap:48px;margin-top:48px}
+            .pricing-grid{grid-template-columns:1fr;gap:56px;margin-top:40px}.pricing-card{padding-top:44px}
             .guide-steps{grid-template-columns:1fr}
             .download-content{grid-template-columns:1fr}
             .section{padding:50px 0}
@@ -303,7 +303,7 @@
             </div>
             <section class="section section-hero" id="hero">
                 <div class="hero-text reveal">
-                    <span class="version-tag">✦ v3.0 全新版本已发布</span>
+                    <span class="version-tag">✦ v2.0.0 全新版本已发布</span>
                     <h1>短线智能<br><span class="gradient-text">交易系统</span></h1>
                     <p>让AI为您捕捉每一个交易机会。全自动智能分析、毫秒级极速下单、严格风险控制，助您在短线交易中抢占先机。</p>
                     <div style="display:flex;gap:16px;margin-top:20px">
