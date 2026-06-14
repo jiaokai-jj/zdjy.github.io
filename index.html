@@ -13,25 +13,25 @@
         :root {
             /* 深色基底 */
             --bg-deep: #060b15;
-            --bg-card: rgba(15, 23, 42, 0.65);
-            --bg-card-hover: rgba(20, 30, 52, 0.85);
-            --border-subtle: rgba(255, 255, 255, 0.07);
-            --border-active: rgba(99, 150, 255, 0.22);
+            --bg-card: rgba(10, 18, 35, 0.5);
+            --bg-card-hover: rgba(14, 24, 45, 0.75);
+            --border-subtle: rgba(140, 170, 210, 0.08);
+            --border-active: rgba(100, 160, 240, 0.25);
             --text-primary: #e8edf5;
-            --text-secondary: #94a3b8;
-            --text-tertiary: #64748b;
+            --text-secondary: #8fa4c0;
+            --text-tertiary: #5a7090;
             /* 渐变 */
             --gradient-blue-purple: linear-gradient(135deg, #5b8cff, #a855f7, #c084fc);
             --gradient-blue-cyan: linear-gradient(135deg, #22d3ee, #3b82f6, #8b5cf6);
             --gradient-gold: linear-gradient(135deg, #fbbf24, #d4af37, #f59e0b);
-            --accent-cyan: #06b6d4;
-            --accent-purple: #8b5cf6;
+            --accent-cyan: #3cc8e8;
+            --accent-purple: #7c5cf0;
             --accent-gold: #d4af37;
             /* 玻璃效果 */
-            --glass-bg: rgba(15, 23, 42, 0.55);
+            --glass-bg: rgba(10, 18, 35, 0.5);
             --glass-border: rgba(255, 255, 255, 0.08);
             --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            --glass-blur: blur(16px);
+            --glass-blur: blur(18px);
             /* 圆角 */
             --radius-sm: 8px;
             --radius: 14px;
@@ -46,7 +46,7 @@
         html { scroll-behavior: smooth; font-size: 16px; height: 100%; }
         body {
             font-family: var(--font-sans);
-            background: var(--bg-deep);
+            background: linear-gradient(170deg, #050d1a 0%, #061220 30%, #071828 60%, #060f1c 100%);
             color: var(--text-primary);
             line-height: 1.6;
             overflow-x: hidden;
@@ -566,19 +566,17 @@
             transform: translateY(-4px);
             border-color: var(--border-active);
             box-shadow: 0 12px 36px rgba(0,0,0,0.35), 0 0 0 1px rgba(99,150,255,0.08);
-        }.video-thumb { position: relative; width: 100%; height: 130px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; overflow: hidden; border: 1px solid var(--border-subtle); transition: all 0.4s; }
+        }.video-thumb { position: relative; width: 100%; height: 130px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; overflow: hidden; border: 1px solid var(--glass-border); transition: all 0.4s; background: linear-gradient(135deg, rgba(80,140,220,0.06), rgba(130,90,230,0.06)); }
         .video-card:hover .video-thumb { border-color: var(--border-active); }
-        .video-thumb-bg { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(80,140,255,0.1), rgba(140,80,245,0.1), rgba(50,200,230,0.08)); border-radius: var(--radius); animation: thumbShift 4s ease-in-out infinite; background-size: 200% 200%; }
-        @keyframes thumbShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-        .video-thumb-lines { position: absolute; inset: 0; opacity: 0.15; background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(99,150,255,0.08) 8px, rgba(99,150,255,0.08) 9px); border-radius: var(--radius); transition: opacity 0.5s; }
-        .video-card:hover .video-thumb-lines { opacity: 0.35; }
-        .video-tag-badge { position: absolute; top: 8px; right: 8px; background: rgba(99,150,255,0.12); border: 1px solid rgba(99,150,255,0.2); color: #8098e0; font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 50px; letter-spacing: 0.5px; backdrop-filter: blur(8px); z-index: 2; }
-        .play-btn-ring { position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; transition: transform 0.4s cubic-bezier(0.16,1,0.3,1); z-index: 1; }
-        .video-card:hover .play-btn-ring { transform: scale(1.12); }
-        .play-btn-pulse { position: absolute; inset: -8px; border-radius: 50%; border: 2px solid rgba(139,92,246,0.3); opacity: 0; }
-        .video-card:hover .play-btn-pulse { animation: pulseRing 1.4s ease-out infinite; }
-        @keyframes pulseRing { 0% { transform: scale(0.7); opacity: 0.7; } 100% { transform: scale(1.8); opacity: 0; } }
-        .play-btn-core { width: 42px; height: 42px; border-radius: 50%; background: var(--gradient-blue-purple); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; z-index: 1; box-shadow: 0 6px 24px rgba(139,92,246,0.4); transition: all 0.3s; }.video-card h4 { font-size: 0.88rem; color: var(--text-primary); }
+        .video-tag-badge { position: absolute; top: 8px; right: 8px; background: rgba(100,160,240,0.1); border: 1px solid rgba(100,160,240,0.2); color: #88a8d8; font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 50px; letter-spacing: 0.5px; backdrop-filter: blur(8px); z-index: 2; }
+        .play-btn-ring { position: relative; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; transition: transform 0.4s cubic-bezier(0.16,1,0.3,1); z-index: 1; }
+        .video-card:hover .play-btn-ring { transform: scale(1.1); }
+        .play-btn-pulse { position: absolute; inset: -8px; border-radius: 50%; border: 2px solid rgba(100,160,240,0.22); opacity: 0; }
+        .video-card:hover .play-btn-pulse { animation: pulseRing 1.5s ease-out infinite; }
+        @keyframes pulseRing { 0% { transform: scale(0.6); opacity: 0.6; } 100% { transform: scale(1.6); opacity: 0; } }
+        .play-btn-core { width: 44px; height: 44px; border-radius: 50%; background: var(--gradient-blue); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; z-index: 1; box-shadow: 0 6px 24px rgba(80,140,240,0.35); transition: all 0.3s; }
+        .video-thumb-lines { position: absolute; inset: 0; opacity: 0.1; background: repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(100,160,240,0.06) 6px, rgba(100,160,240,0.06) 7px); border-radius: var(--radius); transition: opacity 0.5s; }
+        .video-card:hover .video-thumb-lines { opacity: 0.25; }.video-card h4 { font-size: 0.88rem; color: var(--text-primary); }
 
         /* ============ PRICING ============ */
         .pricing-grid {
@@ -1060,7 +1058,15 @@
                 <div class="video-grid">
                     <div class="video-card reveal" onclick="playLocalVideo('videos/install.mp4')">
                         <div class="video-thumb">
-                            <div class="video-thumb-bg"></div>
+                            <div class="video-thumb-lines"></div>
+                            <div class="video-tag-badge">入门必看</div>
+                            <div class="play-btn-ring">
+                                <div class="play-btn-pulse"></div>
+                                <div class="play-btn-core">▶</div>
+                            </div>
+                        </div>
+                        <h4>安装教程</h4>
+                    </div>
                             <div class="video-thumb-lines"></div>
                             <div class="video-tag-badge">入门必看</div>
                             <div class="play-btn-ring">
@@ -1072,7 +1078,15 @@
                     </div>
                     <div class="video-card reveal reveal-delay-1" onclick="playLocalVideo('videos/strategy.mp4')">
                         <div class="video-thumb">
-                            <div class="video-thumb-bg"></div>
+                            <div class="video-thumb-lines"></div>
+                            <div class="video-tag-badge">核心教程</div>
+                            <div class="play-btn-ring">
+                                <div class="play-btn-pulse"></div>
+                                <div class="play-btn-core">▶</div>
+                            </div>
+                        </div>
+                        <h4>策略讲解</h4>
+                    </div>
                             <div class="video-thumb-lines"></div>
                             <div class="video-tag-badge">核心教程</div>
                             <div class="play-btn-ring">
@@ -1084,7 +1098,15 @@
                     </div>
                     <div class="video-card reveal reveal-delay-2" onclick="playLocalVideo('videos/trading.mp4')">
                         <div class="video-thumb">
-                            <div class="video-thumb-bg"></div>
+                            <div class="video-thumb-lines"></div>
+                            <div class="video-tag-badge">实战操作</div>
+                            <div class="play-btn-ring">
+                                <div class="play-btn-pulse"></div>
+                                <div class="play-btn-core">▶</div>
+                            </div>
+                        </div>
+                        <h4>实盘演示</h4>
+                    </div>
                             <div class="video-thumb-lines"></div>
                             <div class="video-tag-badge">实战操作</div>
                             <div class="play-btn-ring">
@@ -1096,7 +1118,15 @@
                     </div>
                     <div class="video-card reveal reveal-delay-3" onclick="playLocalVideo('videos/advanced.mp4')">
                         <div class="video-thumb">
-                            <div class="video-thumb-bg"></div>
+                            <div class="video-thumb-lines"></div>
+                            <div class="video-tag-badge">进阶技巧</div>
+                            <div class="play-btn-ring">
+                                <div class="play-btn-pulse"></div>
+                                <div class="play-btn-core">▶</div>
+                            </div>
+                        </div>
+                        <h4>高级功能</h4>
+                    </div>
                             <div class="video-thumb-lines"></div>
                             <div class="video-tag-badge">进阶技巧</div>
                             <div class="play-btn-ring">
@@ -1220,28 +1250,32 @@
         </div>
     </div>
 
-    <script>
-                                        // ============ ORBIT RING - DRAG TO SPLIT ============
-(function(){var c=document.getElementById('bgCanvas');if(!c)return;var x=c.getContext('2d');var w,h,cx,cy,t=0,mx=.5,my=.5,tmx=.5,tmy=.5;var drag=!1,dx=0,dy=0,dox=0,doy=0,sf=0,ts=0,sa=0,ta=0;
+    <script>NEBULA GEOMETRY ENGINE ============
+(function(){var c=document.getElementById('bgCanvas');if(!c)return;var x=c.getContext('2d');var w,h,cx,cy,t=0,mx=.5,my=.5,tx=.5,ty=.5;var drag=0,dx=0,dy=0,ox=0,oy=0,sf=0,ts=0,sa=0,ta=0;
 function rs(){w=c.width=window.innerWidth;h=c.height=window.innerHeight;cx=w/2;cy=h/2;}
 window.addEventListener('resize',rs);rs();
-document.addEventListener('mousemove',function(e){tmx=e.clientX/w;tmy=e.clientY/h;if(drag){dx=e.clientX;dy=e.clientY}});
-document.addEventListener('touchmove',function(e){if(e.touches.length){tmx=e.touches[0].clientX/w;tmy=e.touches[0].clientY/h;if(drag){dx=e.touches[0].clientX;dy=e.touches[0].clientY}}},{passive:!0});
-document.addEventListener('mousedown',function(e){drag=!0;dox=e.clientX;doy=e.clientY;dx=e.clientX;dy=e.clientY});
-document.addEventListener('touchstart',function(e){if(e.touches.length){drag=!0;dox=e.touches[0].clientX;doy=e.touches[0].clientY;dx=e.touches[0].clientX;dy=e.touches[0].clientY}});
-document.addEventListener('mouseup',function(){drag=!1});document.addEventListener('touchend',function(){drag=!1});
-var ps=[];
-function ip(){ps=[];var n=Math.floor(w*h/8000);for(var i=0;i<n;i++)ps.push({px:Math.random()*w,py:Math.random()*h,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,sz:.5+Math.random()*1.5,ph:Math.random()*Math.PI*2,sp:.3+Math.random()*.7,cl:[[80,160,255],[140,105,245],[55,210,240],[180,90,255],[100,180,255]][Math.floor(Math.random()*5)]})}
-ip();
-function dr(){t+=.012;mx+=(tmx-mx)*.04;my+=(tmy-my)*.04;
-if(drag){var dd=Math.sqrt((dx-dox)*(dx-dox)+(dy-doy)*(dy-doy));ts=Math.min(dd/Math.min(w,h),.8);ta=Math.atan2(dy-doy,dx-dox)}else ts=0;
-sf+=(ts-sf)*.08;sa+=(ta-sa)*.12;x.clearRect(0,0,w,h);
-for(var i=0;i<ps.length;i++){var p=ps[i];p.px+=p.vx+(mx-.5)*.15;p.py+=p.vy+(my-.5)*.15;if(p.px<-20)p.px=w+20;if(p.px>w+20)p.px=-20;if(p.py<-20)p.py=h+20;if(p.py>h+20)p.py=-20;var al=.15+Math.sin(t*p.sp+p.ph)*.1,cl=p.cl;var g=x.createRadialGradient(p.px,p.py,0,p.px,p.py,p.sz*6);g.addColorStop(0,'rgba('+cl[0]+','+cl[1]+','+cl[2]+','+al+')');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.beginPath();x.arc(p.px,p.py,p.sz*6,0,Math.PI*2);x.fill()}
-var br=Math.min(w,h)*.12,sr=Math.min(w,h)*sf*.45,cx2=cx+Math.cos(sa)*sr*.5,cy2=cy+Math.sin(sa)*sr*.5;
-var cls=[[80,160,255],[140,105,245],[55,210,240],[180,90,255],[90,170,255],[65,195,245],[160,120,255],[85,205,245],[125,155,255],[70,185,250],[150,115,250],[95,190,248]];var ly=10;
-for(var ri=0;ri<ly;ri++){var fr=ri/(ly-1),rv=br*(.4+fr*(1.5+sf*2.5)),sg=50+ri*12,al2=.06+fr*.22+sf*.1,cl2=cls[ri%cls.length];x.strokeStyle='rgba('+cl2[0]+','+cl2[1]+','+cl2[2]+','+al2+')';x.lineWidth=.5+fr*(1+sf);
-for(var s=0;s<sg;s++){var a1=(s/sg)*Math.PI*2+t*(.3+ri*.05)+sf*Math.cos(t+s)*.1,a2=a1+(Math.PI*2/sg)*(.5+sf*.4),wb=Math.sin(t*2+s*.4+ri)*2*(1+sf);x.beginPath();x.arc(cx2,cy2,rv+wb,a1,a2);x.stroke()}}
-var ry=28;for(var i=0;i<ry;i++){var an=(i/ry)*Math.PI*2,ir=br*.3,or=br*(1.2+sf*4+Math.sin(t*1.5+i)*.3*sf),x1=cx2+Math.cos(an)*ir,y1=cy2+Math.sin(an)*ir,x2=cx2+Math.cos(an)*or,y2=cy2+Math.sin(an)*or;var rc=[[80,160,255],[140,105,245],[55,210,240]][i%3],al3=.02+sf*.08;var gr=x.createLinearGradient(x1,y1,x2,y2);gr.addColorStop(0,'rgba('+rc[0]+','+rc[1]+','+rc[2]+',0)');gr.addColorStop(.5,'rgba('+rc[0]+','+rc[1]+','+rc[2]+','+al3+')');gr.addColorStop(1,'rgba('+rc[0]+','+rc[1]+','+rc[2]+',0)');x.strokeStyle=gr;x.lineWidth=.5;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke()}
+document.addEventListener('mousemove',function(e){tx=e.clientX/w;ty=e.clientY/h;if(drag){dx=e.clientX;dy=e.clientY}});
+document.addEventListener('touchmove',function(e){if(e.touches.length){tx=e.touches[0].clientX/w;ty=e.touches[0].clientY/h;if(drag){dx=e.touches[0].clientX;dy=e.touches[0].clientY}}},{passive:!0});
+document.addEventListener('mousedown',function(e){drag=1;ox=e.clientX;oy=e.clientY;dx=e.clientX;dy=e.clientY});
+document.addEventListener('touchstart',function(e){if(e.touches.length){drag=1;ox=e.touches[0].clientX;oy=e.touches[0].clientY;dx=e.touches[0].clientX;dy=e.touches[0].clientY}});
+document.addEventListener('mouseup',function(){drag=0});document.addEventListener('touchend',function(){drag=0});
+var ps=[];function ip(){ps=[];var n=Math.floor(w*h/7000);for(var i=0;i<n;i++)ps.push({px:Math.random()*w,py:Math.random()*h,vx:(Math.random()-.5)*.2,vy:(Math.random()-.5)*.2,sz:.5+Math.random()*1.8,ph:Math.random()*Math.PI*2,sp:.2+Math.random()*.6,cl:[[90,160,240],[130,110,235],[60,200,225],[160,95,240],[80,170,245]][Math.floor(Math.random()*5)]})}ip();
+function dr(){t+=.01;mx+=(tx-mx)*.04;my+=(ty-my)*.04;
+if(drag){var dd=Math.sqrt((dx-ox)*(dx-ox)+(dy-oy)*(dy-oy));ts=Math.min(dd/Math.min(w,h),.75);ta=Math.atan2(dy-oy,dx-ox)}else ts=0;
+sf+=(ts-sf)*.06;sa+=(ta-sa)*.1;x.clearRect(0,0,w,h);
+for(var i=0;i<ps.length;i++){var p=ps[i];p.px+=p.vx+(mx-.5)*.1;p.py+=p.vy+(my-.5)*.1;if(p.px<-20)p.px=w+20;if(p.px>w+20)p.px=-20;if(p.py<-20)p.py=h+20;if(p.py>h+20)p.py=-20;
+var al=.1+Math.sin(t*p.sp+p.ph)*.08,cl=p.cl;var g=x.createRadialGradient(p.px,p.py,0,p.px,p.py,p.sz*5);g.addColorStop(0,'rgba('+cl[0]+','+cl[1]+','+cl[2]+','+al+')');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.beginPath();x.arc(p.px,p.py,p.sz*5,0,Math.PI*2);x.fill()}
+var ox2=(mx-.5)*30,oy2=(my-.5)*20;
+x.strokeStyle='rgba(100,160,230,0.025)';x.lineWidth=.5;
+for(var i=0;i<30;i++){var a1=i/30*Math.PI*2+t*.15,a2=a1+.3+Math.sin(t+i)*.2;var r1=Math.min(w,h)*.25,r2=r1+40+Math.sin(t*2+i)*20;x.beginPath();x.moveTo(cx+Math.cos(a1)*r1+ox2,cy+Math.sin(a1)*r1*.6+oy2);x.lineTo(cx+Math.cos(a2)*r2+ox2,cy+Math.sin(a2)*r2*.6+oy2);x.stroke()}
+for(var i=0;i<8;i++){var an=i/8*Math.PI*2+t*.1,r=Math.min(w,h)*(.2+Math.sin(t*.5+i)*.08);var px2=cx+Math.cos(an)*r+ox2,py2=cy+Math.sin(an)*r*.6+oy2;x.strokeStyle='rgba(100,170,240,0.06)';x.lineWidth=.8;x.beginPath();for(var j=0;j<4;j++){var aa=an+j/4*Math.PI*2;x.lineTo(px2+Math.cos(aa)*12,py2+Math.sin(aa)*8)}x.closePath();x.stroke();
+var g2=x.createRadialGradient(px2,py2,0,px2,py2,8);g2.addColorStop(0,'rgba(120,180,240,0.12)');g2.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g2;x.beginPath();x.arc(px2,py2,8,0,Math.PI*2);x.fill()}
+var br=Math.min(w,h)*.1,sr=Math.min(w,h)*sf*.42,cx2=cx+Math.cos(sa)*sr*.4,cy2=cy+Math.sin(sa)*sr*.4;
+var cls=[[80,155,240],[135,108,238],[55,195,222],[170,92,245],[85,165,242],[60,190,228],[155,118,248],[78,200,235],[120,150,240],[68,182,245]];
+var ly=10;for(var ri=0;ri<ly;ri++){var fr=ri/(ly-1),rv=br*(.35+fr*(1.6+sf*3)),sg=55+ri*15,al2=.05+fr*.2+sf*.1,cl2=cls[ri%cls.length];x.strokeStyle='rgba('+cl2[0]+','+cl2[1]+','+cl2[2]+','+al2+')';x.lineWidth=.5+fr*(.8+sf);
+for(var s=0;s<sg;s++){var a1=(s/sg)*Math.PI*2+t*(.2+ri*.04)+sf*Math.cos(t+s)*.08,a2=a1+(Math.PI*2/sg)*(.45+sf*.35),wb=Math.sin(t*1.8+s*.35+ri)*2*(1+sf);x.beginPath();x.arc(cx2,cy2,rv+wb,a1,a2);x.stroke()}}
+var ry=32;for(var i=0;i<ry;i++){var an2=(i/ry)*Math.PI*2,ir2=br*.2,or2=br*(1.1+sf*4.5+Math.sin(t*1.2+i)*.2*sf),x1=cx2+Math.cos(an2)*ir2,y1=cy2+Math.sin(an2)*ir2,x2=cx2+Math.cos(an2)*or2,y2=cy2+Math.sin(an2)*or2;var rc=[[85,160,240],[135,110,238],[60,200,225]][i%3],al3=.015+sf*.07;var gr=x.createLinearGradient(x1,y1,x2,y2);gr.addColorStop(0,'rgba('+rc[0]+','+rc[1]+','+rc[2]+',0)');gr.addColorStop(.4,'rgba('+rc[0]+','+rc[1]+','+rc[2]+','+al3+')');gr.addColorStop(1,'rgba('+rc[0]+','+rc[1]+','+rc[2]+',0)');x.strokeStyle=gr;x.lineWidth=.4;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke()}
+for(var i=0;i<6;i++){var la=(t*.6+i*1.05)%(Math.PI*2),lr=br*(.3+sf*2);var lx=cx2+Math.cos(la)*lr,ly=cy2+Math.sin(la)*lr*.7;var lg=x.createRadialGradient(lx,ly,0,lx,ly,6);lg.addColorStop(0,'rgba(180,210,255,.5)');lg.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=lg;x.beginPath();x.arc(lx,ly,6,0,Math.PI*2);x.fill()}
 requestAnimationFrame(dr)}dr();window.addEventListener('resize',function(){rs();ip()})})();
 
 // ============ SCROLL REVEAL ANIMATIONS ============
