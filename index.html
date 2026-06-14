@@ -68,7 +68,7 @@
         .section-title{font-family:var(--font-display);font-size:3rem;font-weight:900;letter-spacing:2px;text-align:center;margin-bottom:8px}
         .section-title-wrapper{text-align:center;margin-bottom:10px}
         .section-title-decor{display:block;width:80px;height:3px;border-radius:2px;margin:14px auto 8px;background:linear-gradient(90deg,transparent,rgba(80,160,220,0.6),transparent)}
-        .section-subtitle{text-align:center;color:var(--text-secondary);font-size:1rem;letter-spacing:1px;margin-top:6px;margin-bottom:24px}
+        .section-subtitle{text-align:center;color:var(--text-secondary);font-size:1rem;letter-spacing:1px;margin-top:6px;margin-bottom:32px}
         .version-tag{display:inline-block;padding:4px 14px;border-radius:50px;font-size:0.7rem;font-weight:600;letter-spacing:1.5px;color:var(--accent-cyan);background:rgba(70,170,210,0.08);border:1px solid rgba(70,170,210,0.15);margin-bottom:12px}
         .app-container{display:flex;min-height:100vh;position:relative;z-index:5}
         .sidebar{position:fixed;top:0;left:0;width:var(--sidebar-width);height:100vh;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border-right:1px solid var(--glass-border);display:flex;flex-direction:column;z-index:100;padding:24px 16px;box-shadow:2px 0 30px rgba(0,0,0,0.5)}
@@ -174,11 +174,11 @@
         .video-card:hover .video-thumb-lines{opacity:0.2}
         .video-card h4{font-size:0.88rem;color:var(--text-primary);margin-top:2px}
         .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:40px;align-items:start}
-        .pricing-card{position:relative;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);padding:48px 28px 36px;text-align:center;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+        .pricing-card{position:relative;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);padding:52px 28px 36px;text-align:center;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);box-shadow:0 4px 20px rgba(0,0,0,0.2)}
         .pricing-card:hover{transform:translateY(-6px);box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 30px rgba(60,130,210,0.1);border-color:var(--border-glow)}
         .pricing-card.recommended{border-color:rgba(100,180,220,0.35);background:rgba(20,32,58,0.52);box-shadow:0 0 40px rgba(100,160,220,0.08)}
-        .pricing-badge{position:absolute;top:0px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#d4b058,#f0d470);color:#0a1018;font-size:0.75rem;font-weight:700;padding:4px 18px;border-radius:20px;letter-spacing:0.5px}
-        .pricing-card h3{font-size:1.2rem;margin-bottom:10px;margin-top:8px}.pricing-price{font-size:2.2rem;font-weight:800;margin-bottom:6px}
+        .pricing-badge{position:absolute;top:-20px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#d4b058,#f0d470);color:#0a1018;font-size:0.75rem;font-weight:700;padding:4px 18px;border-radius:20px;letter-spacing:0.5px}
+        .pricing-card h3{font-size:1.2rem;margin-bottom:10px;margin-top:16px}.pricing-price{font-size:2.2rem;font-weight:800;margin-bottom:6px}
         .pricing-features{list-style:none;margin:20px 0;padding:0}
         .pricing-features li{padding:8px 0;color:var(--text-secondary);font-size:0.88rem;border-bottom:1px solid var(--border-subtle)}
         .pricing-features li:last-child{border-bottom:none}
@@ -229,7 +229,7 @@
             .hero-stats{grid-template-columns:repeat(2,1fr)}
             .features-grid{grid-template-columns:repeat(2,1fr)}
             .video-grid{grid-template-columns:repeat(2,1fr)}
-            .pricing-grid{grid-template-columns:1fr;gap:80px;margin-top:50px}.pricing-card{padding-top:56px}
+            .pricing-grid{grid-template-columns:1fr;gap:80px;margin-top:60px}.pricing-card{padding-top:60px}
             .guide-steps{grid-template-columns:1fr}
             .download-content{grid-template-columns:1fr}
             .section{padding:50px 0}
@@ -311,7 +311,7 @@
                         <button class="btn btn-outline" onclick="document.getElementById('video').scrollIntoView({behavior:'smooth'})">观看演示</button>
                     </div>
                     <div class="hero-stats">
-                        <div class="hero-stat"><div class="stat-value" style="color:#c8a44e">99.9%</div><div class="stat-label">系统稳定性</div></div>
+                        <div class="hero-stat"><div class="stat-value" style="color:#e0c068">99.9%</div><div class="stat-label">系统稳定性</div></div>
                         <div class="hero-stat"><div class="stat-value">&lt;50ms</div><div class="stat-label">平均延迟</div></div>
                         <div class="hero-stat"><div class="stat-value">50万+</div><div class="stat-label">活跃用户</div></div>
                         <div class="hero-stat"><div class="stat-value">24/7</div><div class="stat-label">全天候监控</div></div>
@@ -379,7 +379,7 @@
                     <span class="section-title-decor"></span>
                 </div>
                 <div class="video-grid">
-                    <div class="video-card reveal" onclick="openVideoModal('videos/intro.mp4')">
+                    <div class="video-card reveal" onclick="openVideoModal('videos/install.mp4')">
                         <div class="video-thumb">
                             <div class="video-thumb-lines"></div>
                             <div class="video-tag-badge">入门</div>
@@ -395,7 +395,7 @@
                         </div>
                         <h4>策略配置</h4>
                     </div>
-                    <div class="video-card reveal reveal-delay-2" onclick="openVideoModal('videos/risk.mp4')">
+                    <div class="video-card reveal reveal-delay-2" onclick="openVideoModal('videos/trading.mp4')">
                         <div class="video-thumb">
                             <div class="video-thumb-lines"></div>
                             <div class="video-tag-badge">风控</div>
@@ -419,7 +419,7 @@
                     <span class="section-title gradient-text">选择适合您的版本</span>
                     <span class="section-title-decor"></span>
                 </div>
-                <p class="section-subtitle reveal">所有版本<strong style="color:#10b981">7天免费试用</strong>，年付<strong style="color:#c8a44e">8折</strong>优惠</p>
+                <p class="section-subtitle reveal">所有版本<strong style="color:#10b981">7天免费试用</strong>，年付<strong style="color:#e0c068">8折</strong>优惠</p>
                 <div class="pricing-grid">
                     <div class="pricing-card reveal">
                         <h3>初级版</h3>
