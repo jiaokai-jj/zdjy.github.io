@@ -648,9 +648,11 @@ dr();
 window.addEventListener("resize",function(){rs();ip()});
 })();
 var scrollProgress=document.getElementById("scrollProgress");
-window.addEventListener("scroll",function(){var pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight)*100;scrollProgress.style.width=pct+"%"});
-(function(){void 0;if(el&&d.value!=null)el.textContent=d.value;var el2=document.getElementById("dlNumTop");if(el2&&d.value!=null)el2.textContent=d.value}).catch(function(){document.getElementById("dlNum").textContent="0"})})();(function(){
-function updateStats(d){if(d.visits!=null){var els=document.querySelectorAll("#busuanzi_value_site_pv,#busuanzi_value_site_uv");els.forEach(function(e){e.textContent=d.visits})}if(d.downloads!=null){var el=document.getElementById("dlNum");if(el)el.textContent=d.downloads;var el2=document.getElementById("dlNumTop");if(el2)el2.textContent=d.downloads}}
+window.addEventListener("scroll",function(){var pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight)*100;scrollProgress.style.width=pct+"%"(function(){
+function updateStats(d){
+if(d.visits!=null){var els=document.querySelectorAll("#busuanzi_value_site_pv,#busuanzi_value_site_uv");els.forEach(function(e){e.textContent=d.visits})}
+if(d.downloads!=null){var el=document.getElementById("dlNum");if(el)el.textContent=d.downloads;var el2=document.getElementById("dlNumTop");if(el2)el2.textContent=d.downloads}
+}
 fetch("https://www.jyt.cc.cd/api/stats").then(function(r){return r.json()}).then(updateStats).catch(function(){});
 fetch("https://www.jyt.cc.cd/api/track",{method:"POST",body:JSON.stringify({type:"visit"})}).then(function(r){return r.json()}).then(updateStats).catch(function(){});
 })();
