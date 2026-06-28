@@ -1,14 +1,8 @@
-// Cloudflare Worker - 智库授权 API
-// 1. Cloudflare Dashboard -> Workers & Pages -> Create -> 粘贴此代码
-// 2. 设置自定义域: jyt.cc.cd/api/*
+// Cloudflare Worker - 智库授权 API + 访问/下载统计
+// Workers & Pages -> jyt-license -> 编辑代码 -> 粘贴替换
 
-// 吊销列表（要吊销哪个注册码，把前30位加进来）
-const REVOKED = [
-  // "eyJtYWNoaW5lX2lkIjoiY2M3YzBk",  // 示例：吊销时取消注释
-];
-
-// 管理员密钥
-const ADMIN_KEY = "admin-change-me";  // 部署后改掉
+const REVOKED = [];
+const ADMIN_KEY = "admin-change-me";
 
 export default {
   async fetch(request, env, ctx) {
@@ -34,6 +28,40 @@ export default {
       return new Response(JSON.stringify({ status: "ok" }), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
+    // GET /api/stats - 返回访问和下载统计
+    if (path === "/api/stats") {
+      const visits = (await env.STATS.get("visits")) || "0";
+      const downloads = (await env.STATS.get("downloads")) || "0";
+      return new Response(JSON.stringify({ visits: parseInt(visits), downloads: parseInt(downloads) }),
+        { headers: { ...cors, "Content-Type": "application/json" } });
+    }
+
+    // POST /api/track - 记录访问
+    if (path === "/api/track" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        if (body.type === "visit") {
+          const v = await env.STATS.get("visits");
+          const n = (parseInt(v) || 0) + 1;
+          await env.STATS.put("visits", String(n));
+          return new Response(JSON.stringify({ ok: true, visits: n }),
+            { headers: { ...cors, "Content-Type": "application/json" } });
+        }
+        if (body.type === "download") {
+          const d = await env.STATS.get("downloads");
+          const n = (parseInt(d) || 0) + 1;
+          await env.STATS.put("downloads", String(n));
+          return new Response(JSON.stringify({ ok: true, downloads: n }),
+            { headers: { ...cors, "Content-Type": "application/json" } });
+        }
+        return new Response(JSON.stringify({ ok: false, error: "unknown type" }),
+          { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, error: e.message }),
+          { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
+      }
+    }
+
     // POST /api/verify - 吊销检查
     if (path === "/api/verify" && request.method === "POST") {
       try {
@@ -53,7 +81,7 @@ export default {
       }
     }
 
-    // POST /api/revoke - 吊销（需API Key）
+    // POST /api/revoke
     if (path === "/api/revoke" && request.method === "POST") {
       if ((request.headers.get("X-API-Key") || "") !== ADMIN_KEY) {
         return new Response(JSON.stringify({ ok: false, error: "unauthorized" }),

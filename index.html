@@ -247,7 +247,7 @@
             .pricing-price{font-size:1.6rem}
         }
     </style>
-<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></head>
+</head>
 <body>
     <canvas id="bgCanvas"></canvas>
     <div class="scroll-progress-bar" id="scrollProgress"></div>
@@ -649,7 +649,12 @@ window.addEventListener("resize",function(){rs();ip()});
 })();
 var scrollProgress=document.getElementById("scrollProgress");
 window.addEventListener("scroll",function(){var pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight)*100;scrollProgress.style.width=pct+"%"});
-(function(){fetch("https://api.countapi.xyz/get/zdjy-site/downloads").then(function(r){return r.json()}).then(function(d){var el=document.getElementById("dlNum");if(el&&d.value!=null)el.textContent=d.value;var el2=document.getElementById("dlNumTop");if(el2&&d.value!=null)el2.textContent=d.value}).catch(function(){document.getElementById("dlNum").textContent="0"})})();var reveals=document.querySelectorAll(".reveal");
+(function(){fetch("https://api.countapi.xyz/get/zdjy-site/downloads").then(function(r){return r.json()}).then(function(d){var el=document.getElementById("dlNum");if(el&&d.value!=null)el.textContent=d.value;var el2=document.getElementById("dlNumTop");if(el2&&d.value!=null)el2.textContent=d.value}).catch(function(){document.getElementById("dlNum").textContent="0"})})();(function(){
+function updateStats(d){if(d.visits!=null){var els=document.querySelectorAll("#busuanzi_value_site_pv,#busuanzi_value_site_uv");els.forEach(function(e){e.textContent=d.visits})}if(d.downloads!=null){var el=document.getElementById("dlNum");if(el)el.textContent=d.downloads;var el2=document.getElementById("dlNumTop");if(el2)el2.textContent=d.downloads}}
+fetch("https://www.jyt.cc.cd/api/stats").then(function(r){return r.json()}).then(updateStats).catch(function(){});
+fetch("https://www.jyt.cc.cd/api/track",{method:"POST",body:JSON.stringify({type:"visit"})}).then(function(r){return r.json()}).then(updateStats).catch(function(){});
+})();
+var reveals=document.querySelectorAll(".reveal");
 var observer=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add("visible")})},{threshold:0.12});
 reveals.forEach(function(el){observer.observe(el)});
 (function(){var vals=[3350.28,10850.46,2180.72,985.60,0.62,0.85,-0.28,1.14];function upd(){for(var i=0;i<4;i++){vals[i]+=(Math.random()-0.5)*3;vals[i+4]+=(Math.random()-0.5)*0.06}document.getElementById("szIndex").textContent=vals[0].toFixed(2);document.getElementById("scIndex").textContent=vals[1].toFixed(2);document.getElementById("cyIndex").textContent=vals[2].toFixed(2);document.getElementById("kcIndex").textContent=vals[3].toFixed(2);document.getElementById("szChange").textContent=(vals[4]>=0?"+":"")+vals[4].toFixed(2)+"%";document.getElementById("scChange").textContent=(vals[5]>=0?"+":"")+vals[5].toFixed(2)+"%";document.getElementById("cyChange").textContent=(vals[6]>=0?"+":"")+vals[6].toFixed(2)+"%";document.getElementById("kcChange").textContent=(vals[7]>=0?"+":"")+vals[7].toFixed(2)+"%"}setInterval(upd,2000)})();
