@@ -1,6 +1,4 @@
-// Cloudflare Worker - 智库授权 API + 访问/下载统计
-// Workers & Pages -> jyt-license -> 编辑代码 -> 粘贴替换
-
+// Cloudflare Worker - JYT License + Stats
 const REVOKED = [];
 const ADMIN_KEY = "admin-change-me";
 
@@ -15,7 +13,6 @@ export default {
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
 
-    // GET /api/version
     if (path === "/api/version") {
       return new Response(JSON.stringify({
         version: "2.0.2", url: "https://www.jyt.cc.cd/",
@@ -23,12 +20,10 @@ export default {
       }), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // GET /api/health
     if (path === "/api/health") {
       return new Response(JSON.stringify({ status: "ok" }), { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // GET /api/stats - 返回访问和下载统计
     if (path === "/api/stats") {
       const visits = (await env.STATS.get("visits")) || "0";
       const downloads = (await env.STATS.get("downloads")) || "0";
@@ -36,7 +31,6 @@ export default {
         { headers: { ...cors, "Content-Type": "application/json" } });
     }
 
-    // POST /api/track - 记录访问
     if (path === "/api/track" && request.method === "POST") {
       try {
         const body = await request.json();
@@ -62,13 +56,12 @@ export default {
       }
     }
 
-    // POST /api/verify - 吊销检查
     if (path === "/api/verify" && request.method === "POST") {
       try {
         const body = await request.json();
         const license = body.license || "";
         const prefix = license.substring(0, 30);
-        const revoked = REVOKED.some(r => license.startsWith(r));
+        const revoked = REVOKED.some(function(r) { return license.startsWith(r); });
         if (revoked) {
           return new Response(JSON.stringify({ ok: false, error: "revoked" }),
             { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
@@ -81,7 +74,6 @@ export default {
       }
     }
 
-    // POST /api/revoke
     if (path === "/api/revoke" && request.method === "POST") {
       if ((request.headers.get("X-API-Key") || "") !== ADMIN_KEY) {
         return new Response(JSON.stringify({ ok: false, error: "unauthorized" }),
