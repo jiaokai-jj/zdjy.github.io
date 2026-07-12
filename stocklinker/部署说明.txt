@@ -1,22 +1,21 @@
-# StockLinker 远程升级部署说明
+# 随便恋 远程升级部署说明
 
 ## 服务器文件（GitHub Pages 自定义域名: www.jyt.cc.cd/stocklinker/）
 ## 仓库: github.com/jiaokai-jj/zdjy.github.io
 
 | 文件 | 说明 |
 |------|------|
-| version.txt | 纯数字版本号，如: 1001（新版本号必须大于旧版本号） |
-| StockLinker3.exe | 客户端程序 |
+| version.txt | 纯数字版本号，如: 1002（新版本号必须大于旧版本号） |
+| 随便恋.exe | 客户端程序 |
 | codes.txt | 股票代码映射表 |
 | software_config.ini | 软件配置文件 |
-| name2code.ini | 股票名称到代码的映射（可选） |
 
 ## 升级逻辑（已实现）
 
 1. 客户端启动后 3 秒，后台线程自动 HTTP GET `https://www.jyt.cc.cd/stocklinker/version.txt`
 2. 如果服务器版本号 > 本地版本号（APP_VERSION），弹出升级提示对话框
 3. 用户点击"是"后，后台线程下载以下文件到 `.new` 临时文件：
-   - StockLinker3.exe.new
+   - 随便恋.exe.new
    - codes.txt.new
    - software_config.ini.new
 4. 下载完成后生成 `update.bat` 批处理脚本
@@ -24,10 +23,10 @@
 
 ## 发布新版本步骤
 
-1. 修改 `Utils.h` 中的 `APP_VERSION`（如 1001 → 1002）
-2. 编译生成新的 `StockLinker3.exe`
+1. 修改 `Utils.h` 中的 `APP_VERSION`（如 1002 → 1003）
+2. 编译生成新的 `随便恋.exe`（运行 build.bat，输出 app_tmp.exe，重命名为 随便恋.exe）
 3. 将以下文件复制到 `stocklinker/` 目录：
-   - StockLinker3.exe
+   - 随便恋.exe
    - codes.txt（如有更新）
    - software_config.ini（如有更新）
 4. 修改 `version.txt` 为新版本号
@@ -39,3 +38,9 @@
 - 客户端通过 `APP_VERSION` 常量记录本地版本
 - 服务器通过 `version.txt` 记录最新版本
 - 只有 服务器版本 > 本地版本 时才提示升级
+
+## 注意事项
+
+- build.bat 因编码问题输出 app_tmp.exe，需手动重命名为 随便恋.exe
+- git 全局代理已移除，直连 GitHub 即可 push
+- GitHub Pages 自定义域名: www.jyt.cc.cd（非 zdjy.github.io）
