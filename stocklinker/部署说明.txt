@@ -1,6 +1,7 @@
 # StockLinker 远程升级部署说明
 
-## 服务器文件（GitHub Pages: zdjy.github.io/stocklinker/）
+## 服务器文件（GitHub Pages 自定义域名: www.jyt.cc.cd/stocklinker/）
+## 仓库: github.com/jiaokai-jj/zdjy.github.io
 
 | 文件 | 说明 |
 |------|------|
@@ -12,7 +13,7 @@
 
 ## 升级逻辑（已实现）
 
-1. 客户端启动后 3 秒，后台线程自动 HTTP GET `https://zdjy.github.io/stocklinker/version.txt`
+1. 客户端启动后 3 秒，后台线程自动 HTTP GET `https://www.jyt.cc.cd/stocklinker/version.txt`
 2. 如果服务器版本号 > 本地版本号（APP_VERSION），弹出升级提示对话框
 3. 用户点击"是"后，后台线程下载以下文件到 `.new` 临时文件：
    - StockLinker3.exe.new
