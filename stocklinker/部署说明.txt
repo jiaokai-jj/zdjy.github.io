@@ -1,0 +1,40 @@
+# StockLinker 远程升级部署说明
+
+## 服务器文件（GitHub Pages: zdjy.github.io/stocklinker/）
+
+| 文件 | 说明 |
+|------|------|
+| version.txt | 纯数字版本号，如: 1001（新版本号必须大于旧版本号） |
+| StockLinker3.exe | 客户端程序 |
+| codes.txt | 股票代码映射表 |
+| software_config.ini | 软件配置文件 |
+| name2code.ini | 股票名称到代码的映射（可选） |
+
+## 升级逻辑（已实现）
+
+1. 客户端启动后 3 秒，后台线程自动 HTTP GET `https://zdjy.github.io/stocklinker/version.txt`
+2. 如果服务器版本号 > 本地版本号（APP_VERSION），弹出升级提示对话框
+3. 用户点击"是"后，后台线程下载以下文件到 `.new` 临时文件：
+   - StockLinker3.exe.new
+   - codes.txt.new
+   - software_config.ini.new
+4. 下载完成后生成 `update.bat` 批处理脚本
+5. 程序退出，`update.bat` 等待进程结束后替换文件并重启程序
+
+## 发布新版本步骤
+
+1. 修改 `Utils.h` 中的 `APP_VERSION`（如 1001 → 1002）
+2. 编译生成新的 `StockLinker3.exe`
+3. 将以下文件复制到 `stocklinker/` 目录：
+   - StockLinker3.exe
+   - codes.txt（如有更新）
+   - software_config.ini（如有更新）
+4. 修改 `version.txt` 为新版本号
+5. Git commit & push 到 GitHub
+
+## 版本号规则
+
+- 纯数字递增：1000, 1001, 1002, ...
+- 客户端通过 `APP_VERSION` 常量记录本地版本
+- 服务器通过 `version.txt` 记录最新版本
+- 只有 服务器版本 > 本地版本 时才提示升级
