@@ -1,0 +1,12 @@
+name = "jyt-license-server"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# KV命名空间绑定（用于存储吊销列表、统计数据等）
+# 部署前先创建KV命名空间: wrangler kv:namespace create STATS
+[[kv_namespaces]]
+binding = "STATS"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# 部署后设置管理员密钥: wrangler secret put ADMIN_KEY
+# 值: 你自定义的管理员密钥（用于吊销许可证、强制更新等管理操作）
