@@ -14,7 +14,28 @@ PQIDAQAB
 
 // 管理员密钥（部署后请通过 wrangler secret 设置）
 // wrangler secret put ADMIN_KEY
-const ADMIN_KEY_DEFAULT = "jyt-admin-2025-change-me";
+// H-06 修复：不再使用硬编码弱默认密钥。若未通过 secret 配置，
+// 则在 KV 中自动生成并持久化随机密钥，避免被攻击者利用已知默认值接管管理接口。
+async function getAdminKey(env) {
+  if (env && env.ADMIN_KEY) return env.ADMIN_KEY;
+  try {
+    const kv = env && env.STATS;
+    if (kv) {
+      let k = await kv.get("__admin_key_v4");
+      if (!k) {
+        const bytes = crypto.getRandomValues(new Uint8Array(32));
+        k = Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+        await kv.put("__admin_key_v4", k);
+        console.warn("[worker] ADMIN_KEY 未配置，已自动生成随机密钥并存入 KV");
+      }
+      return k;
+    }
+  } catch (e) {
+    console.error("[worker] getAdminKey error:", e);
+  }
+  // 极端情况（无 KV 也无 secret）：返回 null，管理接口将被拒绝
+  return null;
+}
 
 // v4.0 版本信息
 const CURRENT_VERSION = "4.0.0";
@@ -90,8 +111,11 @@ async function verifyToken(token, secret) {
   } catch { return null; }
 }
 
+// H-07 修复：限制跨域来源，避免任意站点调用
+const ALLOWED_ORIGIN = "https://www.jyt.cc.cd";
+
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, X-API-Key, X-License, X-Machine",
 };
@@ -113,7 +137,7 @@ export default {
       return new Response(null, { headers: CORS });
     }
 
-    const adminKey = (env && env.ADMIN_KEY) || ADMIN_KEY_DEFAULT;
+    const adminKey = await getAdminKey(env);
 
     // ---------- 版本检查 ----------
     if (path === "/api/version") {
@@ -220,7 +244,8 @@ export default {
           if (env && env.STATS) {
             const revokedList = await env.STATS.get("revoked_licenses") || "[]";
             const revokedArr = JSON.parse(revokedList);
-            revoked = revokedArr.some(r => lid.startsWith(r) || licenseKey.substring(0, 50).includes(r));
+            // M-05 修复：仅按 lid 前缀精确匹配，移除易被滥用的子串包含匹配
+            revoked = revokedArr.some(r => lid.startsWith(r));
           }
         } catch {}
         if (revoked) {
@@ -333,6 +358,9 @@ export default {
     // ---------- 吊销许可证 ----------
     if (path === "/api/revoke" && request.method === "POST") {
       const apiKey = request.headers.get("X-API-Key") || "";
+      if (!adminKey) {
+        return jsonResp({ ok: false, error: "admin key not configured" }, 503);
+      }
       if (apiKey !== adminKey) {
         return jsonResp({ ok: false, error: "unauthorized" }, 401);
       }
@@ -365,6 +393,9 @@ export default {
     // ---------- 强制更新开关 ----------
     if (path === "/api/force_update" && request.method === "POST") {
       const apiKey = request.headers.get("X-API-Key") || "";
+      if (!adminKey) {
+        return jsonResp({ ok: false, error: "admin key not configured" }, 503);
+      }
       if (apiKey !== adminKey) {
         return jsonResp({ ok: false, error: "unauthorized" }, 401);
       }
@@ -383,6 +414,9 @@ export default {
     // ---------- 生成许可证（仅管理员） ----------
     if (path === "/api/generate" && request.method === "POST") {
       const apiKey = request.headers.get("X-API-Key") || "";
+      if (!adminKey) {
+        return jsonResp({ ok: false, error: "admin key not configured" }, 503);
+      }
       if (apiKey !== adminKey) {
         return jsonResp({ ok: false, error: "unauthorized" }, 401);
       }
