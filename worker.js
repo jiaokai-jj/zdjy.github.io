@@ -97,6 +97,7 @@ const ADMIN_HTML = `<!doctype html>
     <div class="tabs">
       <div class="tab active" id="tdev" onclick="showTab('dev')">设备</div>
       <div class="tab" id="tlog" onclick="showTab('log')">审计日志</div>
+      <div class="tab" id="tiss" onclick="showTab('iss')">已签发</div>
     </div>
     <div id="dev" class="card">
       <div class="row" style="justify-content:space-between">
@@ -113,6 +114,13 @@ const ADMIN_HTML = `<!doctype html>
         </select>
       </div>
       <table id="logTable"><thead><tr><th>时间</th><th>IP</th><th>注册码ID</th><th>机器码</th><th>结果</th><th>原因</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div id="iss" class="card hidden">
+      <div class="row" style="justify-content:space-between">
+        <strong>已签发许可证</strong>
+        <button class="ghost" onclick="loadAll()">刷新</button>
+      </div>
+      <table id="issTable"><thead><tr><th>注册码ID</th><th>客户</th><th>档位</th><th>机器码</th><th>签发时间</th><th>到期</th><th>操作</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 </div>
@@ -135,10 +143,12 @@ function enter(){document.getElementById('login').classList.add('hidden');docume
 function showTab(t){
   document.getElementById('tdev').classList.toggle('active',t==='dev');
   document.getElementById('tlog').classList.toggle('active',t==='log');
+  document.getElementById('tiss').classList.toggle('active',t==='iss');
   document.getElementById('dev').classList.toggle('hidden',t!=='dev');
   document.getElementById('log').classList.toggle('hidden',t!=='log');
+  document.getElementById('iss').classList.toggle('hidden',t!=='iss');
 }
-async function loadAll(){await stats();await devices();await logs();}
+async function loadAll(){await stats();await devices();await logs();await issued();}
 async function stats(){
   try{
     const r=await fetch(API+'/stats',{headers:auth()});const j=await r.json();
@@ -170,12 +180,30 @@ async function revoke(lid){
   const r=await fetch(API+'/revoke',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({license:lid})});
   const j=await r.json();alert(j.ok?'已吊销':'失败: '+(j.error||''));loadAll();
 }
+async function delIssued(lid){
+  if(!confirm('确认删除签发记录 '+lid+' ？此操作不可恢复'))return;
+  const r=await fetch(API+'/issued/delete',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({lid:lid})});
+  const j=await r.json();alert(j.ok?'已删除':'失败: '+(j.error||''));loadAll();
+}
 async function logs(){
   try{
     const r=await fetch(API+'/audit?limit=300',{headers:auth()});const j=await r.json();
     if(!j.ok)return;window._log=j.data;renderLog();
   }catch(e){}
 }
+async function issued(){
+  try{
+    const r=await fetch(API+'/issued',{headers:auth()});const j=await r.json();
+    if(!j.ok)return;
+    const tb=document.querySelector('#issTable tbody');tb.innerHTML='';
+    (j.data||[]).forEach(d=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td><code>'+(d.lid||'')+'</code></td><td>'+(d.buyer||'-')+'</td><td>'+(d.tier||'')+'</td><td>'+(d.mh||'').slice(0,12)+'...</td><td>'+fmt(d.issued_at)+'</td><td>'+fmtExp(d.exp)+'</td><td><button class="danger" onclick="delIssued(\\''+(d.lid||'')+'\\')">删除</button></td>';
+      tb.appendChild(tr);
+    });
+  }catch(e){}
+}
+function fmtExp(t){if(!t)return '永久';try{const d=new Date(t*1000);return d.toLocaleString('zh-CN',{hour12:false});}catch(e){return String(t);}}
 function renderLog(){
   const f=document.getElementById('filter').value;const arr=(window._log||[]).filter(e=>f==='all'||e.result===f);
   const tb=document.querySelector('#logTable tbody');tb.innerHTML='';
@@ -394,7 +422,7 @@ export default {
     if (path === "/api/verify" && request.method === "POST") {
       const _ip = clientIp(request);
       const _log = (lid, machine, result, reason) =>
-        logAudit(env, { ts: new Date().toISOString(), ip: _ip, lid: lid || "", machine: machine || "", result, reason });
+        ctx.waitUntil(logAudit(env, { ts: new Date().toISOString(), ip: _ip, lid: lid || "", machine: machine || "", result, reason }));
       try {
         const body = await request.json();
         const licenseKey = body.license || "";
@@ -517,7 +545,7 @@ export default {
     if (path === "/api/verify_token" && request.method === "POST") {
       const _ip = clientIp(request);
       const _log = (lid, machine, result, reason) =>
-        logAudit(env, { ts: new Date().toISOString(), ip: _ip, lid: lid || "", machine: machine || "", result, reason });
+        ctx.waitUntil(logAudit(env, { ts: new Date().toISOString(), ip: _ip, lid: lid || "", machine: machine || "", result, reason }));
       try {
         const body = await request.json();
         const token = body.token || "";
@@ -658,6 +686,21 @@ export default {
           iat: Math.floor(Date.now() / 1000),
         };
         const payloadB64 = btoa(JSON.stringify(payload));
+        // 登记签发记录（已签发数据库）
+        try {
+          if (env && env.STATS) {
+            const rec = {
+              lid: payload.lid, mh: payload.mh, tier: payload.tier,
+              exp: payload.exp, buyer: body.buyer || "", note: body.note || "",
+              issued_at: new Date().toISOString()
+            };
+            const arr = JSON.parse(await env.STATS.get("issued_licenses") || "[]");
+            if (!arr.find(x => x.lid === rec.lid)) {
+              arr.unshift(rec);
+              await env.STATS.put("issued_licenses", JSON.stringify(arr));
+            }
+          }
+        } catch (e) {}
         return jsonResp({
           ok: true,
           payload: payload,
@@ -729,6 +772,26 @@ export default {
           .forEach(e => { bf[e.ip] = (bf[e.ip] || 0) + 1; });
         const alerts = Object.entries(bf).filter(([, c]) => c >= 5).map(([ip, count]) => ({ ip, count }));
         return jsonResp({ ok: true, data: audit.slice(0, limit), alerts });
+      }
+
+      // 已签发许可证（签发数据库）
+      if (path === "/api/admin/issued") {
+        const arr = JSON.parse(await env?.STATS?.get("issued_licenses") || "[]");
+        return jsonResp({ ok: true, data: arr });
+      }
+
+      // 删除已签发记录
+      if (path === "/api/admin/issued/delete" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const lid = (body.lid || "").substring(0, 50);
+        if (!lid) return jsonResp({ ok: false, error: "missing lid" }, 400);
+        const kv = env?.STATS;
+        if (kv) {
+          const arr = JSON.parse(await kv.get("issued_licenses") || "[]");
+          const ns = arr.filter(x => x.lid !== lid);
+          await kv.put("issued_licenses", JSON.stringify(ns));
+        }
+        return jsonResp({ ok: true, msg: "deleted", lid });
       }
 
       // 吊销（管理会话）
