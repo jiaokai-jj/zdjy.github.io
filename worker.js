@@ -41,6 +41,155 @@ async function getAdminKey(env) {
 const CURRENT_VERSION = "4.0.0";
 const DOWNLOAD_URL = "https://www.jyt.cc.cd/";
 
+// ========== 管理后台页 (HTML, 由 Worker 直接返回) ==========
+const ADMIN_HTML = `<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JYT 管理后台</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0f172a;color:#e2e8f0}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px}
+  h1{font-size:18px;margin:0 0 4px}
+  .muted{color:#94a3b8;font-size:13px}
+  .card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px;margin:12px 0}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .stat{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px}
+  .stat .n{font-size:22px;font-weight:700;color:#38bdf8}
+  .stat .l{font-size:12px;color:#94a3b8}
+  input{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:14px}
+  button{background:#2563eb;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:14px;cursor:pointer}
+  button.ghost{background:#334155}
+  button.danger{background:#dc2626}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #334155}
+  th{color:#94a3b8;font-weight:500}
+  .ok{color:#4ade80}.fail{color:#f87171}
+  .alert{background:#7f1d1d;border:1px solid #dc2626;color:#fecaca;padding:10px 14px;border-radius:8px;margin:10px 0}
+  .tabs{display:flex;gap:8px;margin:10px 0}
+  .tab{padding:8px 14px;border-radius:8px;background:#1e293b;border:1px solid #334155;cursor:pointer}
+  .tab.active{background:#2563eb;border-color:#2563eb}
+  .hidden{display:none}
+  .row{display:flex;gap:10px;align-items:center}
+  code{background:#0f172a;padding:2px 6px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="login" class="card">
+    <h1>JYT 管理后台</h1>
+    <p class="muted">输入 ADMIN_KEY 登录</p>
+    <div class="row" style="margin-top:10px">
+      <input id="key" type="password" placeholder="ADMIN_KEY">
+      <button onclick="login()">登录</button>
+    </div>
+    <p id="lerr" class="fail" style="min-height:18px"></p>
+  </div>
+  <div id="dash" class="hidden">
+    <div class="row" style="justify-content:space-between">
+      <div><h1>控制台</h1><p class="muted" id="who"></p></div>
+      <button class="ghost" onclick="logout()">退出</button>
+    </div>
+    <div id="alertBox"></div>
+    <div class="grid" id="stats"></div>
+    <div class="tabs">
+      <div class="tab active" id="tdev" onclick="showTab('dev')">设备</div>
+      <div class="tab" id="tlog" onclick="showTab('log')">审计日志</div>
+    </div>
+    <div id="dev" class="card">
+      <div class="row" style="justify-content:space-between">
+        <strong>在线 / 已激活设备</strong>
+        <button class="ghost" onclick="loadAll()">刷新</button>
+      </div>
+      <table id="devTable"><thead><tr><th>注册码ID</th><th>机器码</th><th>版本</th><th>首次</th><th>最近活跃</th><th>IP</th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+    <div id="log" class="card hidden">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <strong>登录审计</strong>
+        <select id="filter" onchange="renderLog()">
+          <option value="all">全部</option><option value="ok">成功</option><option value="fail">失败</option>
+        </select>
+      </div>
+      <table id="logTable"><thead><tr><th>时间</th><th>IP</th><th>注册码ID</th><th>机器码</th><th>结果</th><th>原因</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</div>
+<script>
+const API='/api/admin';
+let TOKEN=localStorage.getItem('jyt_admin')||'';
+function auth(h={}){return Object.assign({'X-Admin-Token':TOKEN},h);}
+async function login(){
+  const k=document.getElementById('key').value.trim();
+  document.getElementById('lerr').textContent='';
+  try{
+    const r=await fetch(API+'/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})});
+    const j=await r.json();
+    if(j.ok){TOKEN=j.token;localStorage.setItem('jyt_admin',TOKEN);enter();}
+    else document.getElementById('lerr').textContent='登录失败: '+(j.error||'');
+  }catch(e){document.getElementById('lerr').textContent='请求失败: '+e.message;}
+}
+function logout(){TOKEN='';localStorage.removeItem('jyt_admin');location.reload();}
+function enter(){document.getElementById('login').classList.add('hidden');document.getElementById('dash').classList.remove('hidden');loadAll();}
+function showTab(t){
+  document.getElementById('tdev').classList.toggle('active',t==='dev');
+  document.getElementById('tlog').classList.toggle('active',t==='log');
+  document.getElementById('dev').classList.toggle('hidden',t!=='dev');
+  document.getElementById('log').classList.toggle('hidden',t!=='log');
+}
+async function loadAll(){await stats();await devices();await logs();}
+async function stats(){
+  try{
+    const r=await fetch(API+'/stats',{headers:auth()});const j=await r.json();
+    if(!j.ok){if(r.status===401)logout();return;}
+    document.getElementById('who').textContent='已登录';
+    const s=j.data;
+    document.getElementById('stats').innerHTML=
+      stat(s.active,'活跃设备')+stat(s.ok_today,'今日成功')+stat(s.fail_today,'今日失败')+stat(s.brute,'疑似暴力IP');
+    let ab='';
+    if(s.brute>0)ab='<div class="alert">[警告] 检测到 '+s.brute+' 个IP在10分钟内失败次数超过阈值，疑似暴力尝试</div>';
+    document.getElementById('alertBox').innerHTML=ab;
+  }catch(e){}
+}
+function stat(n,l){return '<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';}
+async function devices(){
+  try{
+    const r=await fetch(API+'/devices',{headers:auth()});const j=await r.json();
+    if(!j.ok)return;
+    const tb=document.querySelector('#devTable tbody');tb.innerHTML='';
+    (j.data||[]).forEach(d=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td><code>'+(d.lid||'')+'</code></td><td>'+(d.machine||'').slice(0,12)+'...</td><td>'+(d.tier||'')+'</td><td>'+fmt(d.first_seen)+'</td><td>'+fmt(d.last_seen)+'</td><td>'+(d.ip||'')+'</td><td><button class="danger" onclick="revoke(\\''+(d.lid||'')+'\\')">吊销</button></td>';
+      tb.appendChild(tr);
+    });
+  }catch(e){}
+}
+async function revoke(lid){
+  if(!confirm('确认吊销 '+lid+' ？'))return;
+  const r=await fetch(API+'/revoke',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({license:lid})});
+  const j=await r.json();alert(j.ok?'已吊销':'失败: '+(j.error||''));loadAll();
+}
+async function logs(){
+  try{
+    const r=await fetch(API+'/audit?limit=300',{headers:auth()});const j=await r.json();
+    if(!j.ok)return;window._log=j.data;renderLog();
+  }catch(e){}
+}
+function renderLog(){
+  const f=document.getElementById('filter').value;const arr=(window._log||[]).filter(e=>f==='all'||e.result===f);
+  const tb=document.querySelector('#logTable tbody');tb.innerHTML='';
+  arr.forEach(e=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+fmt(e.ts)+'</td><td>'+(e.ip||'')+'</td><td><code>'+(e.lid||'')+'</code></td><td>'+(e.machine||'').slice(0,10)+'</td><td class="'+(e.result==='ok'?'ok':'fail')+'">'+(e.result==='ok'?'成功':'失败')+'</td><td>'+(e.reason||'')+'</td>';
+    tb.appendChild(tr);
+  });
+}
+function fmt(t){if(!t)return'';const d=new Date(t);return d.toLocaleString('zh-CN',{hour12:false});}
+if(TOKEN)enter();
+</script>
+</body></html>`;
+
 // ========== 工具函数 ==========
 function pemToArrayBuffer(pem) {
   const b64 = pem.replace(/-----[A-Z ]+/g, '').replace(/\s+/g, '');
@@ -127,6 +276,59 @@ function jsonResp(data, status = 200) {
   });
 }
 
+// ========== 审计 & 设备注册表 (KV) ==========
+async function logAudit(env, entry) {
+  try {
+    const kv = env && env.STATS;
+    if (!kv) return;
+    let arr = [];
+    try { arr = JSON.parse(await kv.get("audit_log") || "[]"); } catch {}
+    arr.unshift(entry);
+    if (arr.length > 2000) arr = arr.slice(0, 2000);
+    await kv.put("audit_log", JSON.stringify(arr));
+  } catch (e) { console.error("[audit]", e); }
+}
+
+async function touchDevice(env, info) {
+  try {
+    const kv = env && env.STATS;
+    if (!kv) return;
+    let map = {};
+    try { map = JSON.parse(await kv.get("devices") || "{}"); } catch {}
+    const lid = info.lid;
+    const now = Date.now();
+    if (!map[lid]) {
+      map[lid] = { lid, machine: info.machine, tier: info.tier, first_seen: now, count: 0, ip: info.ip };
+    }
+    map[lid].last_seen = now;
+    map[lid].machine = info.machine || map[lid].machine;
+    map[lid].tier = info.tier || map[lid].tier;
+    map[lid].ip = info.ip || map[lid].ip;
+    map[lid].count = (map[lid].count || 0) + 1;
+    await kv.put("devices", JSON.stringify(map));
+  } catch (e) { console.error("[device]", e); }
+}
+
+function clientIp(request) {
+  return request.headers.get("CF-Connecting-IP")
+      || (request.headers.get("x-forwarded-for") || "").split(",")[0].trim()
+      || "unknown";
+}
+
+// 管理员会话：接受 X-API-Key(原始密钥) 或 X-Admin-Token(登录后会话)
+async function isAdmin(request, env) {
+  const adminKey = await getAdminKey(env);
+  if (!adminKey) return false;
+  const apiKey = request.headers.get("X-API-Key") || "";
+  if (apiKey && apiKey === adminKey) return true;
+  const token = request.headers.get("X-Admin-Token") || "";
+  if (token) {
+    const p = await verifyToken(token, adminKey);
+    if (p && p.admin) return true;
+  }
+  return false;
+}
+
 // ========== 主处理 ==========
 export default {
   async fetch(request, env, ctx) {
@@ -190,18 +392,23 @@ export default {
 
     // ---------- 许可证验证（核心） ----------
     if (path === "/api/verify" && request.method === "POST") {
+      const _ip = clientIp(request);
+      const _log = (lid, machine, result, reason) =>
+        logAudit(env, { ts: new Date().toISOString(), ip: _ip, lid: lid || "", machine: machine || "", result, reason });
       try {
         const body = await request.json();
         const licenseKey = body.license || "";
         const machineCode = body.machine_code || "";
 
         if (!licenseKey || !machineCode) {
+          _log("", machineCode, "fail", "missing_params");
           return jsonResp({ ok: false, error: "missing parameters" }, 400);
         }
 
         // 1. 解析RSA签名格式: base64(JSON).RSA_signature
         const dotIdx = licenseKey.lastIndexOf(".");
         if (dotIdx < 0) {
+          _log("", machineCode, "fail", "invalid_format");
           return jsonResp({ ok: false, error: "invalid format" }, 400);
         }
 
@@ -213,6 +420,7 @@ export default {
           payloadStr = atob(payloadB64);
           payload = JSON.parse(payloadStr);
         } catch {
+          _log("", machineCode, "fail", "invalid_payload");
           return jsonResp({ ok: false, error: "invalid payload" }, 400);
         }
 
@@ -221,12 +429,14 @@ export default {
         const payloadBytes = new TextEncoder().encode(payloadStr);
         const sigValid = await rsaVerify(payloadBytes, sigBytes);
         if (!sigValid) {
+          _log(payload.lid || "", machineCode, "fail", "signature_invalid");
           return jsonResp({ ok: false, error: "signature invalid" }, 403);
         }
 
         // 3. 机器码绑定验证
         const licenseMh = payload.mh || payload.machine_id || "";
         if (licenseMh && licenseMh !== machineCode) {
+          _log(payload.lid || "", machineCode, "fail", "machine_mismatch");
           return jsonResp({ ok: false, error: "machine mismatch" }, 403);
         }
 
@@ -234,6 +444,7 @@ export default {
         const exp = payload.exp || 0;
         const now = Math.floor(Date.now() / 1000);
         if (exp > 0 && now > exp) {
+          _log(payload.lid || "", machineCode, "fail", "expired");
           return jsonResp({ ok: false, error: "license expired" }, 403);
         }
 
@@ -249,6 +460,7 @@ export default {
           }
         } catch {}
         if (revoked) {
+          _log(lid, machineCode, "fail", "revoked");
           return jsonResp({ ok: false, error: "license revoked" }, 403);
         }
 
@@ -270,11 +482,11 @@ export default {
 
         const token = await generateToken(tokenPayload, adminKey);
 
-        // 7. 更新活跃许可证计数
+        // 7. 设备注册表 + 审计 + 活跃计数
+        await touchDevice(env, { lid, machine: machineCode, tier, ip: _ip });
+        _log(lid, machineCode, "ok", "verified");
         try {
           if (env && env.STATS) {
-            const active = await env.STATS.get("active_licenses") || "0";
-            // 简单计数，实际生产环境应使用Set或列表
             const activeSet = JSON.parse(await env.STATS.get("active_license_set") || "[]");
             if (!activeSet.includes(lid)) {
               activeSet.push(lid);
@@ -296,34 +508,42 @@ export default {
         });
 
       } catch (e) {
+        _log("", "", "fail", "exception:" + e.message);
         return jsonResp({ ok: false, error: e.message }, 500);
       }
     }
 
     // ---------- 令牌验证（客户端定期调用） ----------
     if (path === "/api/verify_token" && request.method === "POST") {
+      const _ip = clientIp(request);
+      const _log = (lid, machine, result, reason) =>
+        logAudit(env, { ts: new Date().toISOString(), ip: _ip, lid: lid || "", machine: machine || "", result, reason });
       try {
         const body = await request.json();
         const token = body.token || "";
         const machineCode = body.machine_code || "";
 
         if (!token) {
+          _log("", machineCode, "fail", "missing_token");
           return jsonResp({ ok: false, error: "missing token" }, 400);
         }
 
         const payload = await verifyToken(token, adminKey);
         if (!payload) {
+          _log("", machineCode, "fail", "invalid_token");
           return jsonResp({ ok: false, error: "invalid token" }, 403);
         }
 
         // 检查机器码
         if (payload.mh && payload.mh !== machineCode) {
+          _log(payload.lid || "", machineCode, "fail", "machine_mismatch");
           return jsonResp({ ok: false, error: "machine mismatch" }, 403);
         }
 
         // 检查过期
         const now = Math.floor(Date.now() / 1000);
         if (payload.exp && now > payload.exp) {
+          _log(payload.lid || "", machineCode, "fail", "token_expired");
           return jsonResp({ ok: false, error: "token expired" }, 403);
         }
 
@@ -337,8 +557,13 @@ export default {
           }
         } catch {}
         if (revoked) {
+          _log(payload.lid || "", machineCode, "fail", "revoked");
           return jsonResp({ ok: false, error: "license revoked" }, 403);
         }
+
+        // 成功：刷新设备最近活跃时间（用于"在线设备"）
+        await touchDevice(env, { lid: payload.lid || "", machine: machineCode, tier: payload.tier, ip: _ip });
+        _log(payload.lid || "", machineCode, "ok", "token_ok");
 
         return jsonResp({
           ok: true,
@@ -351,6 +576,7 @@ export default {
         });
 
       } catch (e) {
+        _log("", "", "fail", "exception:" + e.message);
         return jsonResp({ ok: false, error: e.message }, 500);
       }
     }
@@ -441,6 +667,105 @@ export default {
       } catch (e) {
         return jsonResp({ ok: false, error: e.message }, 500);
       }
+    }
+
+    // ---------- 管理后台：登录（无需先鉴权，用原始 ADMIN_KEY） ----------
+    if (path === "/api/admin/login" && request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const key = body.key || "";
+      const ak = await getAdminKey(env);
+      if (key && ak && key === ak) {
+        const token = await generateToken(
+          { admin: true, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 7200 },
+          ak
+        );
+        return jsonResp({ ok: true, token });
+      }
+      return jsonResp({ ok: false, error: "invalid key" }, 401);
+    }
+
+    // ---------- 管理后台：其余接口（需登录会话） ----------
+    if (path.startsWith("/api/admin/")) {
+      const authed = await isAdmin(request, env);
+      if (!authed) return jsonResp({ ok: false, error: "unauthorized" }, 401);
+
+      // 设备（在线/已激活注册码）
+      if (path === "/api/admin/devices") {
+        const map = JSON.parse(await env?.STATS?.get("devices") || "{}");
+        const list = Object.values(map).sort((a, b) => (b.last_seen || 0) - (a.last_seen || 0));
+        return jsonResp({ ok: true, data: list });
+      }
+
+      // 统计（含今日成功/失败、疑似暴力IP数）
+      if (path === "/api/admin/stats") {
+        const visits = (await env?.STATS?.get("visits")) || "0";
+        const downloads = (await env?.STATS?.get("downloads")) || "0";
+        const active = (await env?.STATS?.get("active_licenses")) || "0";
+        const audit = JSON.parse(await env?.STATS?.get("audit_log") || "[]");
+        const today = new Date().toISOString().slice(0, 10);
+        let ok_today = 0, fail_today = 0;
+        audit.forEach(e => {
+          if ((e.ts || "").startsWith(today)) {
+            if (e.result === "ok") ok_today++;
+            else if (e.result === "fail") fail_today++;
+          }
+        });
+        const since = Date.now() - 10 * 60 * 1000;
+        const bf = {};
+        audit.filter(e => e.result === "fail" && new Date(e.ts).getTime() > since)
+          .forEach(e => { bf[e.ip] = (bf[e.ip] || 0) + 1; });
+        const brute = Object.values(bf).filter(c => c >= 5).length;
+        return jsonResp({ ok: true, data: { visits: +visits, downloads: +downloads, active: +active, ok_today, fail_today, brute } });
+      }
+
+      // 审计日志 + 暴力尝试告警
+      if (path === "/api/admin/audit") {
+        const u = new URL(request.url);
+        const limit = Math.min(parseInt(u.searchParams.get("limit") || "300"), 2000);
+        const audit = JSON.parse(await env?.STATS?.get("audit_log") || "[]");
+        const since = Date.now() - 10 * 60 * 1000;
+        const bf = {};
+        audit.filter(e => e.result === "fail" && new Date(e.ts).getTime() > since)
+          .forEach(e => { bf[e.ip] = (bf[e.ip] || 0) + 1; });
+        const alerts = Object.entries(bf).filter(([, c]) => c >= 5).map(([ip, count]) => ({ ip, count }));
+        return jsonResp({ ok: true, data: audit.slice(0, limit), alerts });
+      }
+
+      // 吊销（管理会话）
+      if (path === "/api/admin/revoke" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const lid = (body.license || body.lid || "").substring(0, 50);
+        if (!lid) return jsonResp({ ok: false, error: "missing license id" }, 400);
+        const kv = env?.STATS;
+        if (kv) {
+          const arr = JSON.parse(await kv.get("revoked_licenses") || "[]");
+          if (!arr.includes(lid)) { arr.push(lid); await kv.put("revoked_licenses", JSON.stringify(arr)); }
+          const set = JSON.parse(await kv.get("active_license_set") || "[]");
+          const ns = set.filter(l => !l.startsWith(lid));
+          await kv.put("active_license_set", JSON.stringify(ns));
+          await kv.put("active_licenses", String(ns.length));
+          const dev = JSON.parse(await kv.get("devices") || "{}");
+          if (dev[lid]) { delete dev[lid]; await kv.put("devices", JSON.stringify(dev)); }
+        }
+        return jsonResp({ ok: true, msg: "revoked", lid });
+      }
+
+      // 强制更新开关（管理会话）
+      if (path === "/api/admin/force_update" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const force = body.force ? "1" : "0";
+        if (env?.STATS) await env.STATS.put("force_update", force);
+        return jsonResp({ ok: true, force_update: force === "1" });
+      }
+
+      return jsonResp({ ok: false, error: "unknown admin route" }, 404);
+    }
+
+    // ---------- 管理后台页 (挂到 /api/admin, 在 Worker 路由内, 一次 deploy 即可) ----------
+    if (path === "/api/admin" || path === "/api/admin/") {
+      return new Response(ADMIN_HTML, {
+        headers: { ...CORS, "Content-Type": "text/html; charset=utf-8" }
+      });
     }
 
     return new Response("Not Found", { status: 404, headers: CORS });
