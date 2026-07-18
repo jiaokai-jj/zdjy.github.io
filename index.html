@@ -416,32 +416,32 @@
                     <span class="section-title gradient-text">选择适合您的版本</span>
                     <span class="section-title-decor"></span>
                 </div>
-                <p class="section-subtitle reveal">正版授权 · 一次购买 · 永久使用</p>
+                <p class="section-subtitle reveal">正版授权 · 年度订阅 · 持续更新</p>
                 <div class="pricing-grid">
                     <div class="pricing-card reveal">
-                        <h3>初级版</h3>
-                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥18</span><span style="color:var(--text-secondary);font-size:0.9rem">/月</span></div>
-                        <p style="color:var(--text-secondary);font-size:0.75rem">一个账户仅申请一次，只能使用一个月</p>
+                        <h3>体验版</h3>
+                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥298</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
+                        <p style="color:var(--text-secondary);font-size:0.75rem">入门体验，功能精简，适合新手</p>
                         <ul class="pricing-features">
                             <li>每日智能选股1只</li><li>资金限额管理</li><li>基础风险控制</li>
                         </ul>
                         <a href="#download" class="btn btn-outline">立即购买</a>
                     </div>
 <div class="pricing-card reveal reveal-delay-1">
-<h3>中级版</h3>
-                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥288</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
+<h3>标准版</h3>
+                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥588</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
                         <p style="color:var(--text-secondary);font-size:0.75rem">专业级功能，无限制交易</p>
                         <ul class="pricing-features">
-                            <li>每日选股无限制</li><li>资金无上限</li><li>高级风险控制</li><li>🎁 赠送7天</li>
+                            <li>每日选股无限制</li><li>资金无上限</li><li>高级风险控制</li><li>🛡 7天无理由退款</li>
                         </ul>
                         <a href="#download" class="btn btn-gold">立即选用</a>
                     </div>
 <div class="pricing-card recommended reveal reveal-delay-2">
-<span class="pricing-badge">🌟 推荐</span><h3>高级版</h3>
-                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥388</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
+<span class="pricing-badge">🌟 推荐</span><h3>专业版</h3>
+                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥1088</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
                         <p style="color:var(--text-secondary);font-size:0.75rem">全功能旗舰版，含条件单</p>
                         <ul class="pricing-features">
-                            <li>含初/中级所有功能</li><li>条件单模块</li><li>智能止盈止损</li><li>🎁 赠送14天</li>
+                            <li>含体验/标准所有功能</li><li>条件单模块</li><li>智能止盈止损</li><li>🛡 7天无理由退款</li>
                         </ul>
                         <a href="#download" class="btn btn-outline">立即购买</a>
                     </div>
@@ -667,7 +667,7 @@ var chatWindow=document.getElementById("chatWindow"),chatMessages=document.getEl
 function toggleChat(){chatOpen=!chatOpen;chatWindow.classList.toggle("open",chatOpen);if(chatOpen)setTimeout(function(){chatInput.focus()},300)}
 function sendMessage(){var text=chatInput.value.trim();if(!text)return;addBubble(text,"user");chatInput.value="";setTimeout(function(){addBubble(getReply(text),"bot")},500)}
 function addBubble(msg,type){var d=document.createElement("div");d.className="chat-bubble "+type;d.textContent=msg;chatMessages.appendChild(d);chatMessages.scrollTop=chatMessages.scrollHeight}
-function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "初级版¥18/月，中级版¥288/年(赠7天)，高级版¥388/年(赠14天)。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，联系客服激活。";return "感谢咨询！可发送邮件至 290144665@qq.com"}
+function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥588/年，专业版(推荐)¥1088/年。均为年度订阅，支持7天无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，联系客服激活。";return "感谢咨询！可发送邮件至 290144665@qq.com"}
 function handleDownload(){fetch("https://www.jyt.cc.cd/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download"})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href="downloads/智能交易系统.rar";a.download="智能自动交易系统.rar";document.body.appendChild(a);a.click();document.body.removeChild(a)}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){var href=this.getAttribute("href");if(href==="#")return;var target=document.querySelector(href);if(target){e.preventDefault();var offset=window.innerWidth<=900?65:18;window.scrollTo({top:target.offsetTop-offset,behavior:"smooth"})}})});
 var catArea=document.getElementById("catArea"),catContainer=document.getElementById("catContainer");
