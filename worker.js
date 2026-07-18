@@ -304,6 +304,61 @@ function jsonResp(data, status = 200) {
   });
 }
 
+// ========== 实时行情 (代理腾讯/新浪, 解决浏览器直连 CORS) ==========
+const INDEX_CODES = [
+  ["sh000001", "sz"], // 上证指数
+  ["sz399001", "sc"], // 深证成指
+  ["sz399006", "cy"], // 创业板指
+  ["sh000688", "kc"], // 科创50
+];
+let _idxCache = { ts: 0, data: null };
+async function getMarketIndices() {
+  const now = Date.now();
+  if (_idxCache.data && now - _idxCache.ts < 15000) return _idxCache.data; // 15s 缓存
+  const symbols = INDEX_CODES.map(c => c[0]).join(",");
+  const dec = new TextDecoder("gb18030");
+  let data = {};
+  // 1) 腾讯行情 (格式清晰: f[3]=当前, f[4]=昨收)
+  try {
+    const r = await fetch("https://qt.gtimg.cn/q=" + symbols, {
+      headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://gu.qq.com/" }
+    });
+    const txt = dec.decode(await r.arrayBuffer());
+    for (const [code, key] of INDEX_CODES) {
+      const m = txt.match(new RegExp("v_" + code + '="([^"]*)"'));
+      if (m) {
+        const f = m[1].split("~");
+        const cur = parseFloat(f[3]);
+        const prev = parseFloat(f[4]);
+        const chg = prev ? (cur - prev) / prev * 100 : 0;
+        data[key] = { name: f[1], value: cur, change: chg };
+      }
+    }
+  } catch (e) { console.error("[index] tencent fail:", e); }
+  // 2) 新浪兜底
+  if (Object.keys(data).length < 4) {
+    try {
+      const r2 = await fetch("https://hq.sinajs.cn/list=" + symbols, {
+        headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://finance.sina.com.cn/" }
+      });
+      const txt2 = dec.decode(await r2.arrayBuffer());
+      for (const [code, key] of INDEX_CODES) {
+        if (data[key]) continue;
+        const m = txt2.match(new RegExp("hq_str_" + code + '="([^"]*)"'));
+        if (m) {
+          const f = m[1].split(",");
+          const cur = parseFloat(f[1]);
+          const prev = parseFloat(f[2]);
+          const chg = prev ? (cur - prev) / prev * 100 : 0;
+          data[key] = { name: f[0], value: cur, change: chg };
+        }
+      }
+    } catch (e) { console.error("[index] sina fail:", e); }
+  }
+  if (Object.keys(data).length > 0) { _idxCache = { ts: now, data }; }
+  return data;
+}
+
 // ========== 审计 & 设备注册表 (KV) ==========
 async function logAudit(env, entry) {
   try {
@@ -388,6 +443,16 @@ export default {
     // ---------- 健康检查 ----------
     if (path === "/api/health") {
       return jsonResp({ status: "ok", version: CURRENT_VERSION });
+    }
+
+    // ---------- 实时行情 ----------
+    if (path === "/api/index") {
+      try {
+        const data = await getMarketIndices();
+        return jsonResp({ ok: true, updated: Date.now(), indices: data });
+      } catch (e) {
+        return jsonResp({ ok: false, error: e.message }, 500);
+      }
     }
 
     // ---------- 统计 ----------
