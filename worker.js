@@ -568,8 +568,8 @@ export default {
           perms: {
             can_trade: tier !== "trial",
             cond_order: tier === "premium",
-            max_buys: tier === "premium" ? 999999 : (tier === "basic" ? 10 : 0),
-            max_shares: tier === "premium" ? 999999 : (tier === "basic" ? 1000 : 0),
+            max_buys: (tier === "premium" || tier === "standard") ? 999999 : (tier === "basic" ? 10 : 0),
+            max_shares: (tier === "premium" || tier === "standard") ? 999999 : (tier === "basic" ? 1000 : 0),
           }
         };
 
