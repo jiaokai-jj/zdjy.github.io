@@ -1,5 +1,12 @@
 # 随便恋 远程升级部署说明
 
+> **两个版本的关系**
+> - **精简版（蝶恋花，论坛分发）**：仅 通达信专业版 + 远航版，**无 QQ 群按钮**。从 `C:\Users\wf\Desktop\ldjl` 源码构建，压缩包发论坛。
+> - **完整版（本目录托管）**：全部股软（通达信/同花顺/远航版/智能交易系统/dzh2）+ **QQ 群按钮（拓客）**。从 `C:\Users\wf\Desktop\link\StockLinker3\src` 源码构建，部署到本目录作为"升级"目标。
+> - 两者都叫 `随便恋.exe`，共用同一套升级协议（version.txt / 随便恋.exe / codes.txt / software_config.ini）。
+> - **本目录只放完整版**（升级目标）。精简版只在论坛压缩包里，不放在这里，避免同名文件互相覆盖。
+> - **升级触发条件**：精简版本地版本号 < 服务器 version.txt（当前 1006）才会弹升级。建议精简版设为 1004、完整版 1006（已部署）。
+
 ## 服务器文件（GitHub Pages 自定义域名: www.jyt.cc.cd/stocklinker/）
 ## 仓库: github.com/jiaokai-jj/zdjy.github.io
 
