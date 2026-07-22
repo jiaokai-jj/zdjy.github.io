@@ -558,7 +558,8 @@ export default {
         }
 
         // 6. 生成短期令牌（7天有效）
-        const tier = payload.tier || payload.version || "premium";
+        // 安全加固: 缺 tier 字段时默认 trial(最低权限), 与客户端一致, 严禁默认 premium 防止越权。
+        const tier = payload.tier || payload.version || "trial";
         const tokenPayload = {
           lid: lid,
           tier: tier,

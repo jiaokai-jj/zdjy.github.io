@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>睿欣科技 | 短线智能交易系统 v2.0.2</title>
+    <title>睿欣科技 | 短线智能交易系统 v4.0.0</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet">
@@ -303,7 +303,7 @@
             </div>
             <div class="top-stats-bar" style="display:flex;justify-content:center;gap:20px;padding:8px 16px;flex-wrap:wrap;position:relative;z-index:10"><span style="color:#a0b8d0;font-size:0.75rem">📊 访问 <b style="color:#68d4f0" class="js-pv">--</b></span><span style="color:#a0b8d0;font-size:0.75rem">📥 下载 <b style="color:#68d4f0" class="js-dl">--</b></span></div><section class="section section-hero" id="hero">
                 <div class="hero-text reveal">
-                    <span class="version-tag">✦ v2.0.2 正式版</span>
+                    <span class="version-tag">✦ v4.0.0 正式版</span>
                     <h1>短线智能<br><span class="gradient-text">交易系统</span></h1>
                     <p>让AI为您捕捉每一个交易机会。全自动智能分析、毫秒级极速下单、严格风险控制，助您在短线交易中抢占先机。</p>
                     <div style="display:flex;gap:16px;margin-top:20px">
@@ -456,7 +456,7 @@
                 <div class="download-inner reveal">
                     <div class="download-content">
                         <div>
-                            <span class="version-tag">v2.0.2 · 免安装版</span>
+                            <span class="version-tag">v4.0.0 · 免安装版</span>
                             <h3 style="font-size:1.5rem;margin-bottom:6px">Windows 版</h3>
                             <p style="color:var(--text-secondary)">系统要求：Windows 10 / 11 · 64位</p>
                             <div class="download-feature-tags">
@@ -468,7 +468,7 @@
                             <h4 style="color:#fff">📋 使用说明</h4>
                             <ol>
                                 <li>点击按钮下载ZIP压缩包</li><li>解压到任意文件夹</li><li>双击运行 智能自动交易系统.exe</li>
-                                <li>软件自动生成硬件注册码</li><li>联系客服提供注册码激活</li>
+                                <li>软件自动生成硬件注册码</li><li>添加客服QQ 290144665 提供注册码激活</li>
                             </ol>
                             <p style="font-size:0.72rem;color:var(--text-secondary)">客服时间：工作日 9:00-18:00</p>
                         </div>
@@ -476,9 +476,9 @@
                 </div>
             </section>
             <section class="version-section reveal">
-                <div class="version-badge" id="versionBadge" onclick="toggleChangelog()">当前版本 v2.0.2 <span class="arrow">▼</span></div>
+                <div class="version-badge" id="versionBadge" onclick="toggleChangelog()">当前版本 v4.0.0 <span class="arrow">▼</span></div>
                 <div class="changelog-panel" id="changelogPanel">
-                    <h4>更新日志 <span class="version-tag">v2.0.2</span></h4>
+                    <h4>更新日志 <span class="version-tag">v4.0.0</span></h4>
                     <ul>
                         <li>全新 AI 驱动短线交易引擎上线</li>
                         <li>深度强化学习策略模型 PPO + Transformer 架构</li>
@@ -663,11 +663,12 @@ function openVideoModal(src){var m=document.getElementById("videoModal"),v=docum
 function closeVideoModal(){var m=document.getElementById("videoModal"),v=document.getElementById("modalVideo");m.classList.remove("show");v.pause();v.src=""}
 var versionBadge=document.getElementById("versionBadge"),changelogPanel=document.getElementById("changelogPanel");
 function toggleChangelog(){var show=!changelogPanel.classList.contains("show");changelogPanel.classList.toggle("show",show);versionBadge.classList.toggle("open",show)}
+(function(){var API="/api/version";fetch(API,{headers:{"Accept":"application/json"}}).then(function(r){return r.json()}).then(function(d){if(!d||!d.version)return;var v=d.version;var badge=document.getElementById("versionBadge");if(badge)badge.innerHTML="当前版本 v"+v+' <span class="arrow">▼</span>';document.title=document.title.replace(/\bv?\d+\.\d+\.\d+\b/, "v"+v)}).catch(function(){})})();
 var chatWindow=document.getElementById("chatWindow"),chatMessages=document.getElementById("chatMessages"),chatInput=document.getElementById("chatInput"),chatOpen=false;
 function toggleChat(){chatOpen=!chatOpen;chatWindow.classList.toggle("open",chatOpen);if(chatOpen)setTimeout(function(){chatInput.focus()},300)}
 function sendMessage(){var text=chatInput.value.trim();if(!text)return;addBubble(text,"user");chatInput.value="";setTimeout(function(){addBubble(getReply(text),"bot")},500)}
 function addBubble(msg,type){var d=document.createElement("div");d.className="chat-bubble "+type;d.textContent=msg;chatMessages.appendChild(d);chatMessages.scrollTop=chatMessages.scrollHeight}
-function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥588/年，专业版(推荐)¥1088/年。均为年度订阅，支持7天无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，联系客服激活。";return "感谢咨询！可发送邮件至 290144665@qq.com"}
+function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥588/年，专业版(推荐)¥1088/年。均为年度订阅，支持7天无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，添加客服QQ 290144665 发送注册码即可激活。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
 function handleDownload(){fetch("https://www.jyt.cc.cd/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download"})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href="downloads/智能交易系统.rar";a.download="智能自动交易系统.rar";document.body.appendChild(a);a.click();document.body.removeChild(a)}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){var href=this.getAttribute("href");if(href==="#")return;var target=document.querySelector(href);if(target){e.preventDefault();var offset=window.innerWidth<=900?65:18;window.scrollTo({top:target.offsetTop-offset,behavior:"smooth"})}})});
 var catArea=document.getElementById("catArea"),catContainer=document.getElementById("catContainer");
