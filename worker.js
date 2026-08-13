@@ -98,6 +98,8 @@ const ADMIN_HTML = `<!doctype html>
       <div class="tab active" id="tdev" onclick="showTab('dev')">设备</div>
       <div class="tab" id="tlog" onclick="showTab('log')">审计日志</div>
       <div class="tab" id="tiss" onclick="showTab('iss')">已签发</div>
+      <div class="tab" id="tord" onclick="showTab('ord')">订单</div>
+      <div class="tab" id="tag" onclick="showTab('ag')">代理</div>
     </div>
     <div id="dev" class="card">
       <div class="row" style="justify-content:space-between">
@@ -122,6 +124,14 @@ const ADMIN_HTML = `<!doctype html>
       </div>
       <table id="issTable"><thead><tr><th>注册码ID</th><th>客户</th><th>档位</th><th>机器码</th><th>签发时间</th><th>到期</th><th>操作</th></tr></thead><tbody></tbody></table>
     </div>
+    <div id="ord" class="card hidden">
+      <div class="row" style="justify-content:space-between"><strong>订单（待付款 / 已签发）</strong><button class="ghost" onclick="loadOrders()">刷新</button></div>
+      <table id="ordTable"><thead><tr><th>订单号</th><th>客户</th><th>版本</th><th>机器码</th><th>代理</th><th>状态</th><th>时间</th><th>操作</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div id="ag" class="card hidden">
+      <div class="row" style="justify-content:space-between"><strong>代理归因</strong><button class="ghost" onclick="loadAgents()">刷新</button></div>
+      <table id="agTable"><thead><tr><th>代理码</th><th>名称</th><th>下载</th><th>访问</th><th>激活</th><th>订单</th><th>最近</th></tr></thead><tbody></tbody></table>
+    </div>
   </div>
 </div>
 <script>
@@ -144,11 +154,15 @@ function showTab(t){
   document.getElementById('tdev').classList.toggle('active',t==='dev');
   document.getElementById('tlog').classList.toggle('active',t==='log');
   document.getElementById('tiss').classList.toggle('active',t==='iss');
+  document.getElementById('tord').classList.toggle('active',t==='ord');
+  document.getElementById('tag').classList.toggle('active',t==='ag');
   document.getElementById('dev').classList.toggle('hidden',t!=='dev');
   document.getElementById('log').classList.toggle('hidden',t!=='log');
   document.getElementById('iss').classList.toggle('hidden',t!=='iss');
+  document.getElementById('ord').classList.toggle('hidden',t!=='ord');
+  document.getElementById('ag').classList.toggle('hidden',t!=='ag');
 }
-async function loadAll(){await stats();await devices();await logs();await issued();}
+async function loadAll(){await stats();await devices();await logs();await issued();await loadOrders();await loadAgents();}
 async function stats(){
   try{
     const r=await fetch(API+'/stats',{headers:auth()});const j=await r.json();
@@ -213,6 +227,38 @@ function renderLog(){
     tb.appendChild(tr);
   });
 }
+async function loadOrders(){
+  try{
+    const r=await fetch(API+'/orders',{headers:auth()});const j=await r.json();if(!j.ok)return;
+    const tb=document.querySelector('#ordTable tbody');tb.innerHTML='';
+    (j.data||[]).forEach(d=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td><code>'+(d.order_id||'')+'</code></td><td>'+(d.name||d.contact||'-')+'</td><td>'+(d.tier||'')+'</td><td>'+(d.machine_code||'').slice(0,12)+'...</td><td>'+(d.agent||'-')+'</td><td>'+(d.status||'')+'</td><td>'+fmt(d.created_at)+'</td><td><button onclick="issueOrder(\\''+(d.order_id||'')+'\\',\\''+(d.machine_code||'')+'\\',\\''+(d.tier||'')+'\\')">签发</button></td>';
+      tb.appendChild(tr);
+    });
+  }catch(e){}
+}
+async function issueOrder(orderId,mh,tier){
+  const mc=prompt('机器码（可修改）:',mh||'');if(mc===null)return;
+  const days=prompt('有效期天数（默认365）:','365')||'365';
+  try{
+    const r=await fetch(API+'/orders/issue',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({order_id:orderId,machine_code:mc,tier:tier,days:parseInt(days)||365})});
+    const j=await r.json();
+    if(j.ok){alert('激活码已生成（已尝试复制到剪贴板）：\\n'+j.license);try{navigator.clipboard.writeText(j.license);}catch(e){}loadOrders();}
+    else alert('失败: '+(j.error||''));
+  }catch(e){alert('错误: '+e.message);}
+}
+async function loadAgents(){
+  try{
+    const r=await fetch(API+'/agents',{headers:auth()});const j=await r.json();if(!j.ok)return;
+    const tb=document.querySelector('#agTable tbody');tb.innerHTML='';
+    (j.data||[]).forEach(d=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td><code>'+(d.code||'')+'</code></td><td>'+(d.name||'-')+'</td><td>'+(d.downloads||0)+'</td><td>'+(d.visits||0)+'</td><td>'+(d.activations||0)+'</td><td>'+(d.orders||0)+'</td><td>'+(d.last_seen||'').slice(0,10)+'</td>';
+      tb.appendChild(tr);
+    });
+  }catch(e){}
+}
 function fmt(t){if(!t)return'';const d=new Date(t);return d.toLocaleString('zh-CN',{hour12:false});}
 if(TOKEN)enter();
 </script>
@@ -220,7 +266,10 @@ if(TOKEN)enter();
 
 // ========== 工具函数 ==========
 function pemToArrayBuffer(pem) {
-  const b64 = pem.replace(/-----[A-Z ]+/g, '').replace(/\s+/g, '');
+  const b64 = pem
+    .replace(/-----BEGIN [A-Z0-9 ]+-----/g, '')
+    .replace(/-----END [A-Z0-9 ]+-----/g, '')
+    .replace(/\s+/g, '');
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -286,6 +335,81 @@ async function verifyToken(token, secret) {
     if (!valid) return null;
     return JSON.parse(payloadStr);
   } catch { return null; }
+}
+
+// ========== 激活签发（服务端用私钥签名；私钥仅来自 env.PRIVATE_KEY 密钥，绝不进仓库/前端） ==========
+// 格式严格对齐 zmjyzcm/gen_license.py: payload={mh,tier,exp,lid,gen}, JSON(ASCII) -> base64 -> RSASSA-PKCS1-v1_5(SHA-256) 签名
+// 注意：WebCrypto importKey 仅支持 PKCS#8 私钥，请用 `wrangler secret put PRIVATE_KEY` 填入 PKCS#8 PEM。
+async function signLicense(payload, env) {
+  const pem = env && env.PRIVATE_KEY;
+  if (!pem) throw new Error("PRIVATE_KEY 未配置：请执行 `wrangler secret put PRIVATE_KEY` 填入 RSA 私钥(PKCS#8 PEM)");
+  const keyData = pemToArrayBuffer(pem);
+  const key = await crypto.subtle.importKey(
+    "pkcs8", keyData,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]
+  );
+  const jsonStr = JSON.stringify(payload); // 值为 ASCII，与 gen_license.py 输出逐字节一致
+  const data = new TextEncoder().encode(jsonStr);
+  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, data);
+  const payloadB64 = btoa(jsonStr);
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return payloadB64 + "." + sigB64;
+}
+
+async function buildLicense(machineCode, tier, expireDays, env) {
+  const now = Math.floor(Date.now() / 1000);
+  const exp = expireDays > 0 ? now + expireDays * 86400 : 0;
+  const payload = {
+    mh: machineCode,
+    tier: tier,
+    exp: exp,
+    lid: "L" + now.toString(16).toUpperCase(),
+    gen: now,
+  };
+  const license = await signLicense(payload, env);
+  return { license, payload, exp };
+}
+
+// 记录签发（写入已签发库 + 活跃集合）
+async function recordIssued(env, license, info) {
+  try {
+    if (!env || !env.STATS) return;
+    const rec = Object.assign({
+      lid: license.split(".")[0].slice(0, 50),
+      issued_at: new Date().toISOString(),
+    }, info);
+    const arr = JSON.parse(await env.STATS.get("issued_licenses") || "[]");
+    if (!arr.find(x => x.lid === rec.lid)) {
+      arr.unshift(rec);
+      await env.STATS.put("issued_licenses", JSON.stringify(arr));
+    }
+    const as = JSON.parse(await env.STATS.get("active_license_set") || "[]");
+    if (!as.includes(rec.lid)) {
+      as.push(rec.lid);
+      await env.STATS.put("active_license_set", JSON.stringify(as));
+      await env.STATS.put("active_licenses", String(as.length));
+    }
+  } catch (e) { console.error("[recordIssued]", e); }
+}
+
+// ========== 代理归因（KV） ==========
+async function touchAgent(env, code, field) {
+  try {
+    const kv = env && env.STATS;
+    if (!kv || !code) return;
+    code = String(code).slice(0, 40);
+    let set = [];
+    try { set = JSON.parse(await kv.get("agent_set") || "[]"); } catch {}
+    if (!set.includes(code)) { set.push(code); await kv.put("agent_set", JSON.stringify(set)); }
+    if (field) {
+      const cur = parseInt(await kv.get("agent:" + code + ":" + field) || "0") || 0;
+      await kv.put("agent:" + code + ":" + field, String(cur + 1));
+    }
+    const info = JSON.parse(await kv.get("agent:" + code) || "null") || { code };
+    info.code = code;
+    info.last_seen = new Date().toISOString();
+    await kv.put("agent:" + code, JSON.stringify(info));
+  } catch (e) { console.error("[agent]", e); }
 }
 
 // H-07 修复：限制跨域来源，避免任意站点调用
@@ -466,15 +590,17 @@ export default {
       });
     }
 
-    // ---------- 访问/下载统计 ----------
+    // ---------- 访问/下载统计（含代理归因） ----------
     if (path === "/api/track" && request.method === "POST") {
       try {
         const body = await request.json();
         const type = body.type;
+        const agent = (body.agent || "").toString().trim().slice(0, 40);
         if (type === "visit" || type === "download") {
           const cur = await env?.STATS?.get(type === "visit" ? "visits" : "downloads") || "0";
           const n = (parseInt(cur) || 0) + 1;
           await env?.STATS?.put(type === "visit" ? "visits" : "downloads", String(n));
+          if (agent) ctx.waitUntil(touchAgent(env, agent, type === "visit" ? "visits" : "downloads"));
           return jsonResp({ ok: true, count: n });
         }
         return jsonResp({ ok: false, error: "unknown type" }, 400);
@@ -517,6 +643,14 @@ export default {
           return jsonResp({ ok: false, error: "invalid payload" }, 400);
         }
 
+        // 3b. 换机授权(transfer): 不绑定固定机器, 由服务端按 auth_id 维持唯一在线机器
+        const isTransfer = !!(payload.transfer || payload.dv);
+        const authId = isTransfer ? (payload.auth_id || payload.lid || "") : "";
+        if (isTransfer && !authId) {
+          _log("", machineCode, "fail", "transfer_no_auth");
+          return jsonResp({ ok: false, error: "transfer license missing auth_id" }, 400);
+        }
+
         // 2. RSA签名验证
         const sigBytes = b64decode(sigB64);
         const payloadBytes = new TextEncoder().encode(payloadStr);
@@ -528,7 +662,7 @@ export default {
 
         // 3. 机器码绑定验证
         const licenseMh = payload.mh || payload.machine_id || "";
-        if (licenseMh && licenseMh !== machineCode) {
+        if (!isTransfer && licenseMh && licenseMh !== machineCode) {
           _log(payload.lid || "", machineCode, "fail", "machine_mismatch");
           return jsonResp({ ok: false, error: "machine mismatch" }, 403);
         }
@@ -542,7 +676,7 @@ export default {
         }
 
         // 5. 吊销检查（KV存储）
-        const lid = payload.lid || payload.machine_id?.substring(0, 16) || "";
+        const lid = isTransfer ? authId : (payload.lid || payload.machine_id?.substring(0, 16) || "");
         let revoked = false;
         try {
           if (env && env.STATS) {
@@ -555,6 +689,24 @@ export default {
         if (revoked) {
           _log(lid, machineCode, "fail", "revoked");
           return jsonResp({ ok: false, error: "license revoked" }, 403);
+        }
+
+        // 6b. 换机授权: 绑定 auth_id -> 当前机器, 并将被替换的旧机器加入作废旧机器集合
+        if (isTransfer) {
+          try {
+            if (env && env.STATS) {
+              const prev = await env.STATS.get("transfer_binding:" + authId);
+              if (prev && prev !== machineCode) {
+                let rmh = [];
+                try { rmh = JSON.parse(await env.STATS.get("transfer_revoked_mh") || "[]"); } catch {}
+                if (!rmh.includes(prev)) {
+                  rmh.push(prev);
+                  await env.STATS.put("transfer_revoked_mh", JSON.stringify(rmh));
+                }
+              }
+              await env.STATS.put("transfer_binding:" + authId, machineCode);
+            }
+          } catch (e) { console.error("[transfer]", e); }
         }
 
         // 6. 生成短期令牌（7天有效）
@@ -632,6 +784,19 @@ export default {
         if (payload.mh && payload.mh !== machineCode) {
           _log(payload.lid || "", machineCode, "fail", "machine_mismatch");
           return jsonResp({ ok: false, error: "machine mismatch" }, 403);
+        }
+
+        // 换机授权: 被替换的旧机器(其 machine_code 在 transfer_revoked_mh 中) -> 吊销
+        let mhRevoked = false;
+        try {
+          if (env && env.STATS) {
+            const rmh = JSON.parse(await env.STATS.get("transfer_revoked_mh") || "[]");
+            if (rmh.includes(machineCode)) mhRevoked = true;
+          }
+        } catch {}
+        if (mhRevoked) {
+          _log(payload.lid || "", machineCode, "fail", "transfer_revoked");
+          return jsonResp({ ok: false, error: "license revoked" }, 403);
         }
 
         // 检查过期
@@ -778,6 +943,103 @@ export default {
       }
     }
 
+    // ---------- 代理申请（生成推广链接） ----------
+    if (path === "/api/agent/apply" && request.method === "POST") {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const code = (body.code || "").toString().trim().slice(0, 40);
+        if (!code) return jsonResp({ ok: false, error: "missing agent code" }, 400);
+        if (env?.STATS) {
+          let set = [];
+          try { set = JSON.parse(await env.STATS.get("agent_set") || "[]"); } catch {}
+          if (!set.includes(code)) set.push(code);
+          await env.STATS.put("agent_set", JSON.stringify(set));
+          const info = JSON.parse(await env.STATS.get("agent:" + code) || "{}");
+          info.code = code;
+          info.name = body.name || info.name || "";
+          info.contact = body.contact || info.contact || "";
+          info.applied_at = new Date().toISOString();
+          await env.STATS.put("agent:" + code, JSON.stringify(info));
+        }
+        const promo = (new URL(request.url).origin) + "/?ref=" + encodeURIComponent(code);
+        return jsonResp({ ok: true, code, promo_url: promo });
+      } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+    }
+
+    // ---------- 在线领取激活码（客户自助） ----------
+    if (path === "/api/issue" && request.method === "POST") {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const machineCode = (body.machine_code || "").toString().trim();
+        const tier = (body.tier || "trial").toString().trim();
+        const agent = (body.agent || "").toString().trim().slice(0, 40);
+        const days = parseInt(body.days || "0") || 0;
+        if (!machineCode) return jsonResp({ ok: false, error: "请填写机器码" }, 400);
+        const PAID = ["basic", "standard", "premium"];
+        if (!PAID.includes(tier) && tier !== "trial") return jsonResp({ ok: false, error: "未知版本" }, 400);
+        if (agent) ctx.waitUntil(touchAgent(env, agent, "activations"));
+        // 体验试用：即时签发（默认7天），无需付款
+        if (tier === "trial") {
+          const expDays = days > 0 ? days : 7;
+          const { license, exp } = await buildLicense(machineCode, "trial", expDays, env);
+          await recordIssued(env, license, { mh: machineCode, tier: "trial", exp, agent, buyer: machineCode, order_id: "" });
+          return jsonResp({ ok: true, license, tier: "trial", exp, trial: true });
+        }
+        // 付费版：先建订单（待付款），由管理员收款后签发，避免白嫖
+        const orderId = "O" + Date.now().toString(36).toUpperCase();
+        if (env?.STATS) {
+          const orders = JSON.parse(await env.STATS.get("orders") || "[]");
+          orders.unshift({
+            order_id: orderId, name: body.name || "", contact: body.contact || "",
+            tier, machine_code: machineCode, agent,
+            status: "pending", created_at: new Date().toISOString(),
+            pay_hint: "添加客服QQ 290144665 并提供订单号 " + orderId + " 与机器码完成付款",
+          });
+          await env.STATS.put("orders", JSON.stringify(orders));
+          if (agent) await touchAgent(env, agent, "orders");
+        }
+        return jsonResp({
+          ok: true, need_pay: true, order_id: orderId, tier,
+          pay_hint: "已生成订单 " + orderId + "，请添加客服QQ 290144665 完成付款，并提供机器码与订单号，客服确认后为您签发激活码。",
+          qq: "290144665",
+        });
+      } catch (e) {
+        // 私钥未配置等情况给出明确提示
+        const msg = (e && e.message) || String(e);
+        return jsonResp({ ok: false, error: msg }, 500);
+      }
+    }
+
+    // ---------- 购买下单 ----------
+    if (path === "/api/order" && request.method === "POST") {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const tier = (body.tier || "premium").toString().trim();
+        const agent = (body.agent || "").toString().trim().slice(0, 40);
+        const name = (body.name || "").toString().trim();
+        const contact = (body.contact || "").toString().trim();
+        const machineCode = (body.machine_code || "").toString().trim();
+        const TIERS = { basic: "体验版", standard: "标准版", premium: "专业版" };
+        if (!TIERS[tier]) return jsonResp({ ok: false, error: "未知版本" }, 400);
+        const orderId = "O" + Date.now().toString(36).toUpperCase();
+        if (agent) ctx.waitUntil(touchAgent(env, agent, "orders"));
+        if (env?.STATS) {
+          const orders = JSON.parse(await env.STATS.get("orders") || "[]");
+          orders.unshift({
+            order_id: orderId, name, contact, tier, machine_code: machineCode, agent,
+            status: "pending", created_at: new Date().toISOString(),
+            pay_hint: "添加客服QQ 290144665 并提供订单号 " + orderId + " 完成付款",
+          });
+          await env.STATS.put("orders", JSON.stringify(orders));
+        }
+        return jsonResp({
+          ok: true, order_id: orderId, tier,
+          pay_hint: "已生成订单 " + orderId + "（" + TIERS[tier] + "），请添加客服QQ 290144665 完成付款，客服将为您签发激活码。",
+          qq: "290144665",
+        });
+      } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+    }
+
     // ---------- 管理后台：登录（无需先鉴权，用原始 ADMIN_KEY） ----------
     if (path === "/api/admin/login" && request.method === "POST") {
       const body = await request.json().catch(() => ({}));
@@ -885,6 +1147,60 @@ export default {
         const force = body.force ? "1" : "0";
         if (env?.STATS) await env.STATS.put("force_update", force);
         return jsonResp({ ok: true, force_update: force === "1" });
+      }
+
+      // 订单列表
+      if (path === "/api/admin/orders") {
+        const arr = JSON.parse(await env?.STATS?.get("orders") || "[]");
+        return jsonResp({ ok: true, data: arr });
+      }
+
+      // 为订单签发激活码（管理员，走服务端私钥）
+      if (path === "/api/admin/orders/issue" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const orderId = (body.order_id || "").toString().trim();
+        const machineCode = (body.machine_code || "").toString().trim();
+        const tier = (body.tier || "").toString().trim();
+        const days = parseInt(body.days || "365") || 365;
+        if (!orderId || !machineCode || !tier) return jsonResp({ ok: false, error: "missing params" }, 400);
+        let orderInfo = null;
+        try { const orders = JSON.parse(await env?.STATS?.get("orders") || "[]"); orderInfo = orders.find(x => x.order_id === orderId); } catch {}
+        const { license, exp } = await buildLicense(machineCode, tier, days, env);
+        await recordIssued(env, license, {
+          mh: machineCode, tier, exp,
+          agent: orderInfo ? orderInfo.agent : "",
+          buyer: orderInfo ? (orderInfo.name || orderInfo.contact) : "",
+          order_id: orderId,
+        });
+        try {
+          if (env?.STATS) {
+            const orders = JSON.parse(await env.STATS.get("orders") || "[]");
+            const o = orders.find(x => x.order_id === orderId);
+            if (o) { o.status = "issued"; o.issued_at = new Date().toISOString(); o.license_lid = license.split(".")[0].slice(0, 50); await env.STATS.put("orders", JSON.stringify(orders)); }
+          }
+        } catch (e) {}
+        return jsonResp({ ok: true, license, tier, exp, order_id: orderId });
+      }
+
+      // 代理列表（含归因统计）
+      if (path === "/api/admin/agents") {
+        let set = [];
+        try { set = JSON.parse(await env?.STATS?.get("agent_set") || "[]"); } catch {}
+        const list = [];
+        for (const code of set) {
+          const info = JSON.parse(await env?.STATS?.get("agent:" + code) || "{}");
+          list.push({
+            code,
+            name: info.name || "",
+            contact: info.contact || "",
+            downloads: parseInt(await env?.STATS?.get("agent:" + code + ":downloads") || "0") || 0,
+            visits: parseInt(await env?.STATS?.get("agent:" + code + ":visits") || "0") || 0,
+            activations: parseInt(await env?.STATS?.get("agent:" + code + ":activations") || "0") || 0,
+            orders: parseInt(await env?.STATS?.get("agent:" + code + ":orders") || "0") || 0,
+            last_seen: info.last_seen || "",
+          });
+        }
+        return jsonResp({ ok: true, data: list });
       }
 
       return jsonResp({ ok: false, error: "unknown admin route" }, 404);

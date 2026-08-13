@@ -283,6 +283,7 @@
                 <li><a href="#video"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></span> 视频教程</a></li>
                 <li><a href="#pricing"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span> 版本价格</a></li>
                 <li><a href="#download"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> 下载专区</a></li>
+                <li><a href="#activate"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></span> 领取激活</a></li>
             </ul>
             <div class="sidebar-footer">© 2026 睿欣科技</div>
         </aside>
@@ -292,7 +293,7 @@
         </header>
         <div class="mobile-nav-overlay" id="mobileNavOverlay">
             <a href="#hero">首页</a><a href="#features">核心功能</a><a href="#guide">使用指南</a>
-            <a href="#video">视频教程</a><a href="#pricing">版本价格</a><a href="#download">下载</a>
+            <a href="#video">视频教程</a><a href="#pricing">版本价格</a><a href="#download">下载</a><a href="#activate">领取</a>
         </div>
         <main class="main-content">
             <div class="index-bar" id="indexBar">
@@ -423,9 +424,9 @@
                         <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥298</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
                         <p style="color:var(--text-secondary);font-size:0.75rem">入门体验，功能精简，适合新手</p>
                         <ul class="pricing-features">
-                            <li>每日智能选股1只</li><li>资金限额管理</li><li>基础风险控制</li>
+                            <li>每日智能选股1只</li><li>资金限额管理</li>                        <li>基础风险控制</li>
                         </ul>
-                        <a href="#download" class="btn btn-outline">立即购买</a>
+                        <a href="#activate" class="btn btn-outline" onclick="document.getElementById('actTier').value='basic';">立即购买</a>
                     </div>
 <div class="pricing-card reveal reveal-delay-1">
 <h3>标准版</h3>
@@ -434,16 +435,16 @@
                         <ul class="pricing-features">
                             <li>每日选股无限制</li><li>资金无上限</li><li>高级风险控制</li><li>🛡 7天无理由退款</li>
                         </ul>
-                        <a href="#download" class="btn btn-gold">立即选用</a>
+                        <a href="#activate" class="btn btn-gold" onclick="document.getElementById('actTier').value='standard';">立即选用</a>
                     </div>
 <div class="pricing-card recommended reveal reveal-delay-2">
 <span class="pricing-badge">🌟 推荐</span><h3>专业版</h3>
                         <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥1088</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
                         <p style="color:var(--text-secondary);font-size:0.75rem">全功能旗舰版，含条件单</p>
                         <ul class="pricing-features">
-                            <li>含体验/标准所有功能</li><li>条件单模块</li><li>智能止盈止损</li><li>🛡 7天无理由退款</li>
+                            <li>含体验/标准所有功能</li><li>条件单模块</li><li>智能止盈止损</li>                        <li>🛡 7天无理由退款</li>
                         </ul>
-                        <a href="#download" class="btn btn-outline">立即购买</a>
+                        <a href="#activate" class="btn btn-outline" onclick="document.getElementById('actTier').value='premium';">立即购买</a>
                     </div>
                 </div>
             </section>
@@ -486,6 +487,47 @@
                         <li>实时可视化面板，WebSocket 驱动 PnL 与热力图</li>
                         <li>多交易所统一接入：CTP / XTP / FIX 协议支持</li>
                     </ul>
+                </div>
+            </section>
+            <section class="section" id="activate">
+                <div class="section-title-wrapper reveal">
+                    <span class="version-tag">在线激活</span>
+                    <span class="section-title gradient-text-cyan">在线领取激活码 · 免等待</span>
+                    <span class="section-title-decor"></span>
+                </div>
+                <div class="download-inner reveal" style="max-width:780px;margin:0 auto">
+                    <div id="agentTip" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:10px;background:rgba(80,155,235,.12);border:1px solid rgba(80,155,235,.25);color:#bcd;font-size:.85rem"></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                        <div>
+                            <label style="font-size:.8rem;color:#9fb">机器码 *</label>
+                            <input id="actMachine" placeholder="在软件内复制的硬件注册码" style="width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;margin-top:4px;box-sizing:border-box">
+                        </div>
+                        <div>
+                            <label style="font-size:.8rem;color:#9fb">版本</label>
+                            <select id="actTier" style="width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;margin-top:4px;box-sizing:border-box">
+                                <option value="trial">体验试用（7天免费）</option>
+                                <option value="basic">体验版 ¥298/年</option>
+                                <option value="standard">标准版 ¥588/年</option>
+                                <option value="premium">专业版 ¥1088/年</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:14px;align-items:center;flex-wrap:wrap">
+                        <button class="btn btn-primary" onclick="submitActivate()">领取激活码</button>
+                        <span id="actMsg" style="font-size:.82rem;color:#9fb"></span>
+                    </div>
+                    <div id="actResult" style="display:none;margin-top:14px;padding:14px;border-radius:10px;background:#0f172a;border:1px solid #2a8a55;word-break:break-all">
+                        <div style="font-size:.8rem;color:#8fd">激活码（复制到软件内激活）：</div>
+                        <div id="actLicense" style="font-family:monospace;color:#aef;margin-top:6px;font-size:.78rem;line-height:1.5"></div>
+                        <button class="btn btn-outline" style="margin-top:8px" onclick="copyLicense()">复制激活码</button>
+                    </div>
+                    <div style="margin-top:18px;padding-top:14px;border-top:1px solid #2a3a55;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                        <span style="font-size:.8rem;color:#9fb">申请成为代理：</span>
+                        <input id="agentCode" placeholder="自定义代理码（如 AG123）" style="padding:8px 10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:.8rem">
+                        <button class="btn btn-outline" style="padding:8px 14px" onclick="applyAgent()">生成推广链接</button>
+                        <span id="agentLink" style="font-size:.78rem;color:#8fd;word-break:break-all"></span>
+                    </div>
+                    <p style="font-size:.72rem;color:var(--text-secondary);margin-top:12px">付费版本提交后将生成订单，添加客服QQ <b>290144665</b> 完成付款后由客服为您签发激活码。代理推广链接可带 <code>?ref=你的代理码</code>，自动归属统计。</p>
                 </div>
             </section>
             <footer class="footer reveal">
@@ -668,13 +710,51 @@ var chatWindow=document.getElementById("chatWindow"),chatMessages=document.getEl
 function toggleChat(){chatOpen=!chatOpen;chatWindow.classList.toggle("open",chatOpen);if(chatOpen)setTimeout(function(){chatInput.focus()},300)}
 function sendMessage(){var text=chatInput.value.trim();if(!text)return;addBubble(text,"user");chatInput.value="";setTimeout(function(){addBubble(getReply(text),"bot")},500)}
 function addBubble(msg,type){var d=document.createElement("div");d.className="chat-bubble "+type;d.textContent=msg;chatMessages.appendChild(d);chatMessages.scrollTop=chatMessages.scrollHeight}
-function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥588/年，专业版(推荐)¥1088/年。均为年度订阅，支持7天无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，添加客服QQ 290144665 发送注册码即可激活。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
-function handleDownload(){fetch("https://www.jyt.cc.cd/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download"})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href="downloads/智能交易系统.7z";a.download="智能自动交易系统.7z";document.body.appendChild(a);a.click();document.body.removeChild(a)}
+function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥588/年，专业版(推荐)¥1088/年。均为年度订阅，支持7天无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助获取（体验版7天免费），或添加客服QQ 290144665 由客服发放。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
+function handleDownload(){fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download",agent:getAgent()})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href="downloads/智能交易系统.7z";a.download="智能自动交易系统.7z";document.body.appendChild(a);a.click();document.body.removeChild(a)}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){var href=this.getAttribute("href");if(href==="#")return;var target=document.querySelector(href);if(target){e.preventDefault();var offset=window.innerWidth<=900?65:18;window.scrollTo({top:target.offsetTop-offset,behavior:"smooth"})}})});
 var catArea=document.getElementById("catArea"),catContainer=document.getElementById("catContainer");
 if(catArea&&catContainer){catArea.addEventListener("click",function(e){var rect=catArea.getBoundingClientRect();var x2=e.clientX-rect.left,y2=e.clientY-rect.top;var cw=120,ch=120;var cx2=Math.min(Math.max(x2,cw/2),rect.width-cw/2),cy2=Math.min(Math.max(y2,ch/2),rect.height-ch/2);catContainer.style.left=cx2+"px";catContainer.style.top=cy2+"px";catContainer.style.transform="translate(-50%,-50%)"})}
 (function(){var cards=document.querySelectorAll(".hero-floating-card");window.addEventListener("scroll",function(){var sy2=window.scrollY;for(var i=0;i<cards.length;i++){var card=cards[i],spd=0.03+i*0.015,yOff=sy2*spd,base;if(card.classList.contains("card-main"))base="translate(-50%,-50%) rotateY(-2deg) rotateX(3deg)";else if(card.classList.contains("card-top"))base="rotateY(4deg) rotateX(-2deg)";else base="rotateY(-3deg) rotateX(2deg)";card.style.transform=base+" translateY("+(-yOff)+"px)"}})})();
 (function(){document.querySelectorAll(".feature-card").forEach(function(card){card.addEventListener("mousemove",function(e){var r=card.getBoundingClientRect();card.style.setProperty("--mx",((e.clientX-r.left)/r.width*100).toFixed(1)+"%");card.style.setProperty("--my",((e.clientY-r.top)/r.height*100).toFixed(1)+"%")});card.addEventListener("mouseleave",function(){card.style.setProperty("--mx","50%");card.style.setProperty("--my","50%")})})})();
+    // ===== 代理归因 + 在线激活/下单 =====
+    (function(){
+      try{
+        var p=new URLSearchParams(location.search);
+        var ref=p.get('ref');
+        if(ref){localStorage.setItem('jyt_agent',ref);}
+        window.JYT_AGENT=(localStorage.getItem('jyt_agent')||'')||'';
+        if(window.JYT_AGENT){
+          var tip=document.getElementById('agentTip');
+          if(tip){tip.style.display='block';tip.innerHTML='🤝 您由代理 <b>'+window.JYT_AGENT+'</b> 推荐，下单与激活将自动归属该代理。';}
+        }
+      }catch(e){}
+    })();
+    function getAgent(){return window.JYT_AGENT||'';}
+    function submitActivate(){
+      var mc=document.getElementById('actMachine').value.trim();
+      var tier=document.getElementById('actTier').value;
+      var msg=document.getElementById('actMsg');var res=document.getElementById('actResult');
+      if(!mc){msg.style.color='#f88';msg.textContent='请填写机器码';return;}
+      msg.style.color='#9fb';msg.textContent='提交中...';res.style.display='none';
+      fetch('/api/issue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({machine_code:mc,tier:tier,agent:getAgent()})})
+        .then(function(r){return r.json();}).then(function(d){
+          if(d.ok&&d.license){res.style.display='block';document.getElementById('actLicense').textContent=d.license;msg.textContent='领取成功';try{navigator.clipboard.writeText(d.license);}catch(e){}}
+          else if(d.ok&&d.need_pay){msg.style.color='#fd8';msg.textContent='已生成订单 '+d.order_id+'：'+d.pay_hint;}
+          else{msg.style.color='#f88';msg.textContent='失败：'+(d.error||'');}
+        }).catch(function(e){msg.style.color='#f88';msg.textContent='网络错误：'+e.message;});
+    }
+    function copyLicense(){var t=document.getElementById('actLicense').textContent;try{navigator.clipboard.writeText(t);}catch(e){}}
+    function applyAgent(){
+      var code=document.getElementById('agentCode').value.trim();
+      var out=document.getElementById('agentLink');
+      if(!code){out.style.color='#f88';out.textContent='请填写代理码';return;}
+      fetch('/api/agent/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,agent:getAgent()})})
+       .then(function(r){return r.json();}).then(function(d){
+         if(d.ok){out.style.color='#8fd';out.textContent='推广链接：'+d.promo_url;try{localStorage.setItem('jyt_agent',code);window.JYT_AGENT=code;}catch(e){}}
+         else{out.style.color='#f88';out.textContent='失败：'+(d.error||'');}
+       }).catch(function(e){out.style.color='#f88';out.textContent='网络错误';});
+    }
     </script>
 </body>
 </html>
