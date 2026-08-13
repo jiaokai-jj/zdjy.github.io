@@ -188,6 +188,17 @@
         .download-feature-tags span{background:rgba(80,155,235,0.10);border:1px solid rgba(80,155,235,0.18);color:#b0cce4;font-size:0.72rem;padding:4px 12px;border-radius:16px}
         .download-aside{background:rgba(10,22,42,0.20);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:24px}
         .download-aside h4{margin-bottom:12px}.download-aside ol{padding-left:20px;margin-bottom:12px;color:var(--text-secondary);line-height:1.8}
+        .dl-options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0 4px}
+        .dl-card{border:1px solid var(--border-subtle);border-radius:12px;padding:16px;background:rgba(10,22,42,0.25);display:flex;flex-direction:column;gap:8px}
+        .dl-card.dl-stable{border-color:rgba(72,208,160,0.35);background:rgba(72,208,160,0.06)}
+        .dl-card.dl-beta{border-color:rgba(180,83,9,0.40);background:rgba(180,83,9,0.08)}
+        .dl-card-head{display:flex;align-items:center;justify-content:space-between}
+        .dl-name{font-weight:700;font-size:1.02rem;color:#fff}
+        .dl-badge{font-size:.68rem;padding:3px 9px;border-radius:12px;background:rgba(72,208,160,0.18);color:#6ee7b7;font-weight:600}
+        .dl-beta .dl-badge{background:rgba(180,83,9,0.25);color:#fbbf24}
+        .dl-desc{font-size:.8rem;color:var(--text-secondary);line-height:1.5;flex:1}
+        .dl-card .btn{width:100%;padding:10px 16px;font-size:.85rem}
+        @media(max-width:560px){.dl-options{grid-template-columns:1fr}}
         .version-section{max-width:1200px;margin:0 auto 40px;padding:0 24px;text-align:center}
         .version-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:50px;background:rgba(80,155,235,0.10);border:1px solid rgba(70,140,220,0.15);font-size:0.75rem;font-weight:600;color:var(--accent-cyan);cursor:pointer;transition:all 0.3s;user-select:none}
         .version-badge:hover{background:rgba(70,140,220,0.15);border-color:rgba(70,140,220,0.3)}
@@ -305,7 +316,7 @@
             </div>
             <div class="top-stats-bar" style="display:flex;justify-content:center;gap:20px;padding:8px 16px;flex-wrap:wrap;position:relative;z-index:10"><span style="color:#a0b8d0;font-size:0.75rem">📊 访问 <b style="color:#68d4f0" class="js-pv">--</b></span><span style="color:#a0b8d0;font-size:0.75rem">📥 下载 <b style="color:#68d4f0" class="js-dl">--</b></span></div><section class="section section-hero" id="hero">
                 <div class="hero-text reveal">
-                    <span class="version-tag">✦ v4.0.0 正式版</span>
+                    <span class="version-tag" style="background:#1f6f54;color:#fff">v4.0.0 · 正式版 / 测试版 同步提供</span>
                     <h1>短线智能<br><span class="gradient-text">交易系统</span></h1>
                     <p>让AI为您捕捉每一个交易机会。全自动智能分析、毫秒级极速下单、严格风险控制，助您在短线交易中抢占先机。</p>
                     <div style="display:flex;gap:16px;margin-top:20px">
@@ -458,13 +469,25 @@
                 <div class="download-inner reveal">
                     <div class="download-content">
                         <div>
-                            <span class="version-tag">v4.0.0 · 免安装版</span>
-                            <h3 style="font-size:1.5rem;margin-bottom:6px">Windows 版</h3>
+                            <span class="version-tag">v4.0.0 · 免安装版 · Windows</span>
+                            <h3 style="font-size:1.5rem;margin-bottom:6px">选择你的版本</h3>
                             <p style="color:var(--text-secondary)">系统要求：Windows 10 / 11 · 64位</p>
                             <div class="download-feature-tags">
                                 <span>智能选股引擎</span><span>极速下单系统</span><span>实时行情推送</span><span>自动止损止盈</span>
                             </div>
-                            <a href="#" class="btn btn-primary" onclick="handleDownload();return false">立即下载 (约36MB)</a> <span class="download-count">📥 <span class="js-dl">--</span> 次</span>
+                            <div class="dl-options">
+                                <div class="dl-card dl-stable">
+                                    <div class="dl-card-head"><span class="dl-name">✅ 正式版</span><span class="dl-badge">稳定推荐</span></div>
+                                    <p class="dl-desc">v4.0.0 正式发布，长期稳定，适合日常实盘使用。</p>
+                                    <a href="#" class="btn btn-primary" onclick="handleDownload('stable');return false">下载正式版 (约36MB)</a>
+                                </div>
+                                <div class="dl-card dl-beta">
+                                    <div class="dl-card-head"><span class="dl-name">🔧 测试版</span><span class="dl-badge">功能尝鲜</span></div>
+                                    <p class="dl-desc">v4.0.0 内部测试，含最新功能，可能不稳定，建议先用模拟 / 小资金体验。</p>
+                                    <a href="#" class="btn btn-outline" onclick="handleDownload('beta');return false">下载测试版 (约33MB)</a>
+                                </div>
+                            </div>
+                            <p style="margin-top:12px;font-size:.82rem;color:var(--text-secondary)">📥 累计下载 <span class="js-dl">--</span> 次 · 两个版本激活 / 购买流程完全一致</p>
                         </div>
                         <div class="download-aside">
                             <h4 style="color:#fff">📋 使用说明</h4>
@@ -755,7 +778,7 @@ function toggleChat(){chatOpen=!chatOpen;chatWindow.classList.toggle("open",chat
 function sendMessage(){var text=chatInput.value.trim();if(!text)return;addBubble(text,"user");chatInput.value="";setTimeout(function(){addBubble(getReply(text),"bot")},500)}
 function addBubble(msg,type){var d=document.createElement("div");d.className="chat-bubble "+type;d.textContent=msg;chatMessages.appendChild(d);chatMessages.scrollTop=chatMessages.scrollHeight}
 function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥588/年，专业版(推荐)¥1088/年。均为年度订阅，支持1个月无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助申请7天免费试用高级版（全功能），或添加客服QQ 290144665 由客服发放正式激活码。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
-function handleDownload(){fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download",agent:getAgent()})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href="downloads/智能交易系统.7z";a.download="智能自动交易系统.7z";document.body.appendChild(a);a.click();document.body.removeChild(a)}
+function handleDownload(variant){var file,name;if(variant==='beta'){file='downloads/智能交易系统_测试版.7z';name='智能交易系统_测试版.7z'}else{file='downloads/智能交易系统.7z';name='智能自动交易系统.7z'}fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download",variant:variant,agent:getAgent()})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href=file;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){var href=this.getAttribute("href");if(href==="#")return;var target=document.querySelector(href);if(target){e.preventDefault();var offset=window.innerWidth<=900?65:18;window.scrollTo({top:target.offsetTop-offset,behavior:"smooth"})}})});
 var catArea=document.getElementById("catArea"),catContainer=document.getElementById("catContainer");
 if(catArea&&catContainer){catArea.addEventListener("click",function(e){var rect=catArea.getBoundingClientRect();var x2=e.clientX-rect.left,y2=e.clientY-rect.top;var cw=120,ch=120;var cx2=Math.min(Math.max(x2,cw/2),rect.width-cw/2),cy2=Math.min(Math.max(y2,ch/2),rect.height-ch/2);catContainer.style.left=cx2+"px";catContainer.style.top=cy2+"px";catContainer.style.transform="translate(-50%,-50%)"})}

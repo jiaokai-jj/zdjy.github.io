@@ -131,6 +131,21 @@ const ADMIN_HTML = `<!doctype html>
     <div id="ag" class="card hidden">
       <div class="row" style="justify-content:space-between"><strong>代理归因</strong><button class="ghost" onclick="loadAgents()">刷新</button></div>
       <table id="agTable"><thead><tr><th>代理码</th><th>名称</th><th>下载</th><th>访问</th><th>激活</th><th>订单</th><th>最近</th></tr></thead><tbody></tbody></table>
+      <div style="margin-top:14px;padding:12px;border:1px solid #2a3a4d;border-radius:8px;background:#0e1726">
+        <div style="margin-bottom:8px;color:#68d4f0;font-weight:600">➕ 手动补记业绩（归因丢失时人工核对后补登）</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input id="crCode" placeholder="代理码" style="width:120px;padding:6px;border-radius:6px;border:1px solid #2a3a4d;background:#0b1220;color:#e6f0fa">
+          <select id="crField" style="padding:6px;border-radius:6px;border:1px solid #2a3a4d;background:#0b1220;color:#e6f0fa">
+            <option value="visits">访问</option>
+            <option value="downloads">下载</option>
+            <option value="activations">激活</option>
+            <option value="orders">订单</option>
+          </select>
+          <input id="crAmount" type="number" min="1" value="1" style="width:70px;padding:6px;border-radius:6px;border:1px solid #2a3a4d;background:#0b1220;color:#e6f0fa">
+          <button class="btn btn-primary" style="padding:6px 14px" onclick="creditAgent()">补记</button>
+          <span id="crMsg" style="color:#fbbf24;font-size:.85rem"></span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -258,6 +273,21 @@ async function loadAgents(){
       tb.appendChild(tr);
     });
   }catch(e){}
+}
+async function creditAgent(){
+  const code=document.getElementById('crCode').value.trim();
+  const field=document.getElementById('crField').value;
+  const amount=parseInt(document.getElementById('crAmount').value)||0;
+  const msg=document.getElementById('crMsg');
+  msg.textContent='';
+  if(!code){msg.textContent='请填写代理码';return;}
+  if(amount<=0){msg.textContent='数量需>0';return;}
+  try{
+    const r=await fetch(API+'/agents/credit',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({code,field,amount})});
+    const j=await r.json();
+    if(j.ok){msg.textContent='已补记 '+j.added+'（'+field+' 现 '+j.total+'）';loadAgents();}
+    else msg.textContent='失败: '+(j.error||'');
+  }catch(e){msg.textContent='错误: '+e.message;}
 }
 function fmt(t){if(!t)return'';const d=new Date(t);return d.toLocaleString('zh-CN',{hour12:false});}
 if(TOKEN)enter();
@@ -1202,6 +1232,26 @@ export default {
           });
         }
         return jsonResp({ ok: true, data: list });
+      }
+
+      // 手动补记代理业绩（归因丢失时人工核对后补登）
+      if (path === "/api/admin/agents/credit" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const code = (body.code || "").toString().trim();
+        const field = (body.field || "").toString().trim();
+        const amount = parseInt(body.amount || "0") || 0;
+        const FIELDS = ["visits", "downloads", "activations", "orders"];
+        if (!code) return jsonResp({ ok: false, error: "missing agent code" }, 400);
+        if (!FIELDS.includes(field)) return jsonResp({ ok: false, error: "field must be one of " + FIELDS.join(",") }, 400);
+        if (amount <= 0) return jsonResp({ ok: false, error: "amount must be > 0" }, 400);
+        try {
+          const cur = parseInt(await env?.STATS?.get("agent:" + code + ":" + field) || "0") || 0;
+          await env?.STATS?.put("agent:" + code + ":" + field, String(cur + amount));
+          // 同步全局汇总（若有）
+          const gcur = parseInt(await env?.STATS?.get(field) || "0") || 0;
+          await env?.STATS?.put(field, String(gcur + amount));
+          return jsonResp({ ok: true, code, field, added: amount, total: cur + amount });
+        } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
       }
 
       return jsonResp({ ok: false, error: "unknown admin route" }, 404);
