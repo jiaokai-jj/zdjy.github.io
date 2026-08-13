@@ -978,12 +978,13 @@ export default {
         const PAID = ["basic", "standard", "premium"];
         if (!PAID.includes(tier) && tier !== "trial") return jsonResp({ ok: false, error: "未知版本" }, 400);
         if (agent) ctx.waitUntil(touchAgent(env, agent, "activations"));
-        // 体验试用：即时签发（默认7天），无需付款
+        // 体验试用：即时签发"7天免费试用高级版"（premium 等级 + 7天过期），无需付款
+        // exe 端按 payload.tier 给权限: premium=全功能+条件单; exp 过期即自动收回。
         if (tier === "trial") {
           const expDays = days > 0 ? days : 7;
-          const { license, exp } = await buildLicense(machineCode, "trial", expDays, env);
-          await recordIssued(env, license, { mh: machineCode, tier: "trial", exp, agent, buyer: machineCode, order_id: "" });
-          return jsonResp({ ok: true, license, tier: "trial", exp, trial: true });
+          const { license, exp } = await buildLicense(machineCode, "premium", expDays, env);
+          await recordIssued(env, license, { mh: machineCode, tier: "premium", exp, agent, buyer: machineCode, order_id: "", trial: true });
+          return jsonResp({ ok: true, license, tier: "premium", exp, trial: true });
         }
         // 付费版：先建订单（待付款），由管理员收款后签发，避免白嫖
         const orderId = "O" + Date.now().toString(36).toUpperCase();
