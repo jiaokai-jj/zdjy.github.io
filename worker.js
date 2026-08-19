@@ -41,6 +41,10 @@ async function getAdminKey(env) {
 const CURRENT_VERSION = "4.0.0";
 const DOWNLOAD_URL = "https://www.jyt.cc.cd/";
 
+// 自助领取开关: false=关闭(一律转人工客服, 改回 true 并重新部署可重新开放)。
+// 关闭原因(运营决策): 自助试用可无限续领且客户不接触客服/社群, 影响转化。
+const SELF_ISSUE_ENABLED = false;
+
 // ========== 管理后台页 (HTML, 由 Worker 直接返回) ==========
 const ADMIN_HTML = `<!doctype html>
 <html lang="zh">
@@ -404,8 +408,17 @@ async function buildLicense(machineCode, tier, expireDays, env) {
 async function recordIssued(env, license, info) {
   try {
     if (!env || !env.STATS) return;
+    // 解析 payload 提取真实 lid(原实现取 payload base64 前缀, 与 verify 侧的真实 lid 不一致, 导致账本/活跃集键错乱)
+    let realLid = "";
+    try {
+      const p = String(license || "").split(".");
+      if (p.length === 2) {
+        const pl = JSON.parse(atob(p[0]));
+        realLid = pl.lid || pl.auth_id || "";
+      }
+    } catch {}
     const rec = Object.assign({
-      lid: license.split(".")[0].slice(0, 50),
+      lid: realLid || String(license || "").split(".")[0].slice(0, 50),
       issued_at: new Date().toISOString(),
     }, info);
     const arr = JSON.parse(await env.STATS.get("issued_licenses") || "[]");
@@ -501,7 +514,9 @@ async function getMarketIndices() {
         const m = txt2.match(new RegExp("hq_str_" + code + '="([^"]*)"'));
         if (m) {
           const f = m[1].split(",");
-          const cur = parseFloat(f[1]);
+          // 新浪字段: [0]=名称 [1]=今开 [2]=昨收 [3]=现价。原实现把 f[1](今开) 当现价,
+          // 导致新浪兜底时指数"当前值"实为开盘价, 涨跌幅算错。
+          const cur = parseFloat(f[3]);
           const prev = parseFloat(f[2]);
           const chg = prev ? (cur - prev) / prev * 100 : 0;
           data[key] = { name: f[0], value: cur, change: chg };
@@ -721,7 +736,20 @@ export default {
           return jsonResp({ ok: false, error: "license revoked" }, 403);
         }
 
-        // 6b. 换机授权: 绑定 auth_id -> 当前机器, 并将被替换的旧机器加入作废旧机器集合
+        // 6b. 换机授权: 已废弃旧机器(machineCode 在作废集合中) -> 拒绝重新激活,
+        //     杜绝"两台机器来回转移绑定"薅授权(原实现只在 verify_token 校验, 激活接口可反复重绑)。
+        if (isTransfer) {
+          try {
+            if (env && env.STATS) {
+              let rmh0 = [];
+              try { rmh0 = JSON.parse(await env.STATS.get("transfer_revoked_mh") || "[]"); } catch {}
+              if (rmh0.includes(machineCode)) {
+                _log(authId, machineCode, "fail", "machine_revoked");
+                return jsonResp({ ok: false, error: "machine revoked (该机器已被转移替换)" }, 403);
+              }
+            }
+          } catch (e) { console.error("[transfer-check]", e); }
+        }
         if (isTransfer) {
           try {
             if (env && env.STATS) {
@@ -750,9 +778,9 @@ export default {
           exp: now + 7 * 86400,  // 7天有效
           perms: {
             can_trade: tier !== "trial",
-            cond_order: tier === "premium",
-            max_buys: (tier === "premium" || tier === "standard") ? 999999 : (tier === "basic" ? 10 : 0),
-            max_shares: (tier === "premium" || tier === "standard") ? 999999 : (tier === "basic" ? 1000 : 0),
+            cond_order: tier === "premium" || tier === "flagship",
+            max_buys: (tier === "premium" || tier === "standard" || tier === "flagship") ? 999999 : (tier === "basic" ? 10 : 0),
+            max_shares: (tier === "premium" || tier === "standard" || tier === "flagship") ? 999999 : (tier === "basic" ? 1000 : 0),
           }
         };
 
@@ -973,6 +1001,42 @@ export default {
       }
     }
 
+    // ---------- 手工签发记录上报（本地注册机签码后上报, 进入后台"已签发"清单） ----------
+    if (path === "/api/issued/record" && request.method === "POST") {
+      const apiKey = request.headers.get("X-API-Key") || "";
+      if (!adminKey) {
+        return jsonResp({ ok: false, error: "admin key not configured" }, 503);
+      }
+      if (apiKey !== adminKey) {
+        return jsonResp({ ok: false, error: "unauthorized" }, 401);
+      }
+      try {
+        const body = await request.json().catch(() => ({}));
+        const lid = (body.lid || "").toString().trim().slice(0, 50);
+        const mh = (body.mh || "").toString().trim();
+        if (!lid || !mh) return jsonResp({ ok: false, error: "missing lid/mh" }, 400);
+        const rec = {
+          lid: lid,
+          mh: mh,
+          tier: (body.tier || "").toString().trim(),
+          exp: parseInt(body.exp || "0") || 0,
+          buyer: (body.customer || "").toString().trim(),
+          note: (body.source || "").toString().trim(),
+          issued_at: (body.ts || "").toString().trim() || new Date().toISOString(),
+        };
+        if (env && env.STATS) {
+          const arr = JSON.parse(await env.STATS.get("issued_licenses") || "[]");
+          if (!arr.find(x => x.lid === rec.lid)) {
+            arr.unshift(rec);
+            await env.STATS.put("issued_licenses", JSON.stringify(arr));
+          }
+        }
+        return jsonResp({ ok: true, msg: "recorded", lid: lid });
+      } catch (e) {
+        return jsonResp({ ok: false, error: e.message }, 500);
+      }
+    }
+
     // ---------- 代理申请（生成推广链接） ----------
     if (path === "/api/agent/apply" && request.method === "POST") {
       try {
@@ -996,8 +1060,11 @@ export default {
       } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
     }
 
-    // ---------- 在线领取激活码（客户自助） ----------
+    // ---------- 在线领取激活码（客户自助；SELF_ISSUE_ENABLED=false 时关闭） ----------
     if (path === "/api/issue" && request.method === "POST") {
+      if (!SELF_ISSUE_ENABLED) {
+        return jsonResp({ ok: false, error: "自助领取已关闭，请添加客服QQ 290144665 人工领取试用或购买激活码" }, 403);
+      }
       try {
         const body = await request.json().catch(() => ({}));
         const machineCode = (body.machine_code || "").toString().trim();
@@ -1005,14 +1072,30 @@ export default {
         const agent = (body.agent || "").toString().trim().slice(0, 40);
         const days = parseInt(body.days || "0") || 0;
         if (!machineCode) return jsonResp({ ok: false, error: "请填写机器码" }, 400);
+        // 机器码格式校验: 客户端 mh = sha256 hex 前 32 位。明显非法的值直接拒绝,
+        // 防止垃圾数据写入 KV / 误签发无主试用码。
+        if (!/^[0-9a-fA-F]{32}$/.test(machineCode)) {
+          return jsonResp({ ok: false, error: "机器码格式不正确(应为32位十六进制, 请从软件激活对话框复制)" }, 400);
+        }
         const PAID = ["basic", "standard", "premium"];
         if (!PAID.includes(tier) && tier !== "trial") return jsonResp({ ok: false, error: "未知版本" }, 400);
         if (agent) ctx.waitUntil(touchAgent(env, agent, "activations"));
         // 体验试用：即时签发"7天免费试用高级版"（premium 等级 + 7天过期），无需付款
         // exe 端按 payload.tier 给权限: premium=全功能+条件单; exp 过期即自动收回。
+        // 安全: 每台机器限领一次试用, 防止同一机器反复白嫖(改机器码仍可绕过, 属最低成本风控)。
         if (tier === "trial") {
+          if (env && env.STATS) {
+            try {
+              const tKey = "trial:" + machineCode;
+              const had = await env.STATS.get(tKey);
+              if (had) {
+                return jsonResp({ ok: false, error: "该机器码已领取过免费试用, 如需继续使用请购买正式版" }, 403);
+              }
+            } catch (e) { console.error("[trial-check]", e); }
+          }
           const expDays = days > 0 ? days : 7;
           const { license, exp } = await buildLicense(machineCode, "premium", expDays, env);
+          if (env && env.STATS) { try { await env.STATS.put("trial:" + machineCode, String(exp)); } catch (e) {} }
           await recordIssued(env, license, { mh: machineCode, tier: "premium", exp, agent, buyer: machineCode, order_id: "", trial: true });
           return jsonResp({ ok: true, license, tier: "premium", exp, trial: true });
         }
@@ -1207,7 +1290,7 @@ export default {
           if (env?.STATS) {
             const orders = JSON.parse(await env.STATS.get("orders") || "[]");
             const o = orders.find(x => x.order_id === orderId);
-            if (o) { o.status = "issued"; o.issued_at = new Date().toISOString(); o.license_lid = license.split(".")[0].slice(0, 50); await env.STATS.put("orders", JSON.stringify(orders)); }
+            if (o) { o.status = "issued"; o.issued_at = new Date().toISOString(); o.license_lid = (function(){try{var q=JSON.parse(atob(license.split(".")[0]));return q.lid||q.auth_id||"";}catch(e){return license.split(".")[0].slice(0,50);}})(); await env.STATS.put("orders", JSON.stringify(orders)); }
           }
         } catch (e) {}
         return jsonResp({ ok: true, license, tier, exp, order_id: orderId });
