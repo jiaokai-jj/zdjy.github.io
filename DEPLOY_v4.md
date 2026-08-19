@@ -10,7 +10,7 @@ wrangler login
 
 ### 2. 创建 KV 命名空间
 ```bash
-cd C:\Users\wf\Documents\GitHub\zdjy.github.io
+cd 你的本地仓库目录
 wrangler kv:namespace create STATS
 ```
 将返回的 `id` 填入 `wrangler.toml` 中的 `YOUR_KV_NAMESPACE_ID`
@@ -49,7 +49,7 @@ GitHub Pages 文件已自动推送到 main 分支，GitHub 会自动部署。
 
 ### 1. 生成新的完整性哈希
 ```bash
-cd F:\SmartTradingSystem_v3_build
+cd 你的客户端构建目录
 python update_hash.py
 ```
 
@@ -146,7 +146,7 @@ curl https://www.jyt.cc.cd/api/stats
 
 ### 2. 在线领取激活码
 - 客户在网站"在线领取激活码"填**机器码 + 版本**：
-  - **体验试用 (trial)**：服务端即时签发「7天免费试用高级版」激活码（premium 等级 + 7天过期，exe 全功能，过期自动收回），页面直接显示可复制，无需客服。
+  - **体验试用 (trial)**：服务端即时签发「7天免费试用高级版」激活码（premium 等级 + 7天过期，exe 全功能，过期自动收回），页面直接显示可复制，无需客服。**每台机器限领一次**。
   - **付费版（体验/标准/专业）**：生成订单，提示加客服 QQ `290144665` 付款；管理员在后台**订单** Tab 点"签发"后发放。
 - 接口：`POST /api/issue {"machine_code","tier","agent?","days?"}`
 
@@ -158,7 +158,7 @@ curl https://www.jyt.cc.cd/api/stats
 Worker 用私钥（`env.PRIVATE_KEY`）在线签发激活码，私钥**仅存于 Cloudflare Secret，绝不进仓库 / 前端**。
 - WebCrypto 要求 **PKCS#8** 格式私钥。若你的私钥是 PKCS#1（`BEGIN RSA PRIVATE KEY`），先转换：
   ```bash
-  python -c "from Crypto.PublicKey import RSA; k=RSA.import_key(open(r'C:\Users\jk\Desktop\wk\zmjyzcm\_PRIVATE_KEY_DO_NOT_SHIP\_rsa_priv.pem','rb').read()); open('priv_pkcs8.pem','wb').write(k.export_key('PEM', pkcs=8))"
+  python -c "from Crypto.PublicKey import RSA; k=RSA.import_key(open('<你的私钥.pem>','rb').read()); open('priv_pkcs8.pem','wb').write(k.export_key('PEM', pkcs=8))"
   ```
 - 设置密钥（粘贴 `priv_pkcs8.pem` 全文）：
   ```bash

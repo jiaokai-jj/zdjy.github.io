@@ -3,7 +3,7 @@ REM ============================================
 REM  ???????? - zdjy.github.io
 REM  ??: ???? ? update "??????"
 REM ============================================
-cd /d C:\Users\wf\Documents\GitHub\zdjy.github.io
+cd /d C:\Users\jk\Documents\GitHub\zdjy.github.io
 
 echo.
 echo === ?????? ===
