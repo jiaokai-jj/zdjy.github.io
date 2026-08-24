@@ -39,9 +39,24 @@ if (-not $adminKey) {
     if ($ans.Trim().Length -gt 0) { $adminKey = $ans.Trim() }
 }
 
-# ---------- 代理 + 跳过代理证书 ----------
-$env:HTTP_PROXY  = "http://127.0.0.1:3067"
-$env:HTTPS_PROXY = "http://127.0.0.1:3067"
+# ---------- 代理(自动探测): 本机 Karing 代理在 3067 监听时使用, 否则直连 ----------
+$proxyPort = 3067
+$proxyAlive = $false
+try {
+    $tcp = New-Object System.Net.Sockets.TcpClient
+    $iar = $tcp.BeginConnect("127.0.0.1", $proxyPort, $null, $null)
+    $proxyAlive = $iar.AsyncWaitHandle.WaitOne(500) -and $tcp.Connected
+    $tcp.Close()
+} catch { $proxyAlive = $false }
+if ($proxyAlive) {
+    $env:HTTP_PROXY  = "http://127.0.0.1:$proxyPort"
+    $env:HTTPS_PROXY = "http://127.0.0.1:$proxyPort"
+    Write-Host "[代理] 检测到本机代理 127.0.0.1:$proxyPort, 已启用"
+} else {
+    Remove-Item Env:HTTP_PROXY -ErrorAction SilentlyContinue
+    Remove-Item Env:HTTPS_PROXY -ErrorAction SilentlyContinue
+    Write-Host "[代理] 未检测到本机代理, 直连部署"
+}
 $env:NO_PROXY    = "localhost,127.0.0.1"
 
 if (-not (Test-Path $workerPath)) { Write-Error "找不到 worker.js: $workerPath"; exit 1 }
