@@ -303,7 +303,7 @@ async function loadOrders(){
     const tb=document.querySelector('#ordTable tbody');tb.innerHTML='';
     (j.data||[]).forEach(d=>{
       const tr=document.createElement('tr');
-      tr.innerHTML='<td><code>'+(d.order_id||'')+'</code></td><td>'+(d.name||d.contact||'-')+'</td><td>'+(d.tier||'')+'</td><td>'+(d.machine_code||'').slice(0,12)+'...</td><td>'+(d.agent||'-')+'</td><td>'+(d.status||'')+'</td><td>'+fmt(d.created_at)+'</td><td><button onclick="issueOrder(\\''+(d.order_id||'')+'\\',\\''+(d.machine_code||'')+'\\',\\''+(d.tier||'')+'\\')">签发</button></td>';
+      tr.innerHTML='<td><code>'+(d.order_id||'')+'</code></td><td>'+(d.name||d.contact||'-')+'</td><td>'+(d.tier||'')+'</td><td>'+(d.machine_code||'').slice(0,12)+'...</td><td>'+(d.agent||'-')+'</td><td>'+(d.status||'')+'</td><td>'+fmt(d.created_at)+'</td><td><button onclick="issueOrder(\\''+(d.order_id||'')+'\\',\\''+(d.machine_code||'')+'\\',\\''+(d.tier||'')+'\\')">签发</button> <button class="danger" onclick="delOrder(\\''+(d.order_id||'')+'\\')">删除</button></td>';
       tb.appendChild(tr);
     });
   }catch(e){}
@@ -316,6 +316,13 @@ async function issueOrder(orderId,mh,tier){
     const j=await r.json();
     if(j.ok){alert('激活码已生成（已尝试复制到剪贴板）：\\n'+j.license);try{navigator.clipboard.writeText(j.license);}catch(e){}loadOrders();}
     else alert('失败: '+(j.error||''));
+  }catch(e){alert('错误: '+e.message);}
+}
+async function delOrder(orderId){
+  if(!confirm('确认删除订单 '+orderId+' ？此操作不可恢复'))return;
+  try{
+    const r=await fetch(API+'/orders/delete',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({order_id:orderId})});
+    const j=await r.json();alert(j.ok?'已删除':'失败: '+(j.error||''));loadOrders();
   }catch(e){alert('错误: '+e.message);}
 }
 async function loadAgents(){
@@ -862,26 +869,13 @@ export default {
           } catch (e) { console.error("[trial-check]", e); }
         }
 
-        // 6g. 长期授权校验+老客户白名单: 【只要注册长期/年费(永久或有效期≥1年) 就放行, 不管使用时长】;
-        //     长期客户自动登记进"老客户白名单"; 白名单内的机器也豁免(防误扫)。
-        //     其余(短期/非年费/<1年/破解/过期)一律判非法, 必须重新激活。
-        //     【修复】按档位的试用码(payload.trial===1, 如 premium/standard 试用)由 6c 试用逻辑承担,
-        //     不再落入长期闸门——否则 3 天/7 天试用会被误判为"非长期"而拒绝。
+        // 6g. 付费客户放行 + 老客户白名单: 非试用码(payload.trial != 1)一律放行并登记白名单。
+        //     试用码(trial===1)由 6c 试用逻辑承担; 破解(签名不合法)已被上方 RSA 验签拒绝。
+        //     【不再用"≥365天"卡付费客户】——年费码签发天数不一(如350天), 卡天数会误拒付费客户,
+        //     导致"无法激活/授权非长期"的投诉; 付费与否以"是否试用码"为准即可。
         try {
           if (payload.tier && payload.tier !== "trial" && payload.trial !== 1) {
-            const genTs = payload.gen || 0;
-            const isPerm = payload.exp === 0;
-            const dur = isPerm ? Number.MAX_SAFE_INTEGER : Math.max(0, (payload.exp || 0) - genTs);
-            const isLongTerm = isPerm || dur >= 365 * 86400;
-            if (isLongTerm) {
-              await addLoyal(env, machineCode, lid, tier);   // 自动登记老客户白名单
-            } else {
-              const loyal = await isLoyal(env, machineCode); // 白名单豁免(对已登记的老客户)
-              if (!loyal) {
-                _log(lid, machineCode, "fail", "not_longterm");
-                return jsonResp({ ok: false, error: "invalid_license (授权非长期/年费，请重新激活)" }, 403);
-              }
-            }
+            await addLoyal(env, machineCode, lid, tier);   // 非试用=付费, 登记老客户白名单
           }
         } catch (e) { console.error("[longterm-check]", e); }
 
@@ -1656,6 +1650,20 @@ export default {
         return jsonResp({ ok: true, msg: "revoked", lid });
       }
 
+      // 解锁（撤销吊销：从吊销名单移除，恢复被误吊销的授权）
+      if (path === "/api/admin/unrevoke" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const lid = (body.license || body.lid || "").substring(0, 50);
+        if (!lid) return jsonResp({ ok: false, error: "missing license id" }, 400);
+        const kv = env?.STATS;
+        if (kv) {
+          const arr = JSON.parse(await kv.get("revoked_licenses") || "[]");
+          const ns = arr.filter(x => x !== lid);
+          await kv.put("revoked_licenses", JSON.stringify(ns));
+        }
+        return jsonResp({ ok: true, msg: "unrevoked", lid });
+      }
+
       // 强制更新开关（管理会话）
       if (path === "/api/admin/force_update" && request.method === "POST") {
         const body = await request.json().catch(() => ({}));
@@ -1695,6 +1703,20 @@ export default {
           }
         } catch (e) {}
         return jsonResp({ ok: true, license, tier, exp, order_id: orderId });
+      }
+
+      // 删除订单（清理垃圾/测试/脚本刷的 pending 订单）
+      if (path === "/api/admin/orders/delete" && request.method === "POST") {
+        const body = await request.json().catch(() => ({}));
+        const orderId = (body.order_id || "").toString().trim();
+        if (!orderId) return jsonResp({ ok: false, error: "missing order_id" }, 400);
+        const kv = env?.STATS;
+        if (kv) {
+          const orders = JSON.parse(await kv.get("orders") || "[]");
+          const nx = orders.filter(x => x.order_id !== orderId);
+          await kv.put("orders", JSON.stringify(nx));
+        }
+        return jsonResp({ ok: true, msg: "deleted", order_id: orderId });
       }
 
       // 代理列表（含归因统计）
