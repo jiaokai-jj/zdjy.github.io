@@ -610,7 +610,9 @@ async function isMachineIgnored(env, mh) {
   try {
     if (!env || !env.STATS || !mh) return false;
     const list = JSON.parse(await env.STATS.get("ignore_machines") || "[]");
-    return list.some(x => String(mh).startsWith(x));
+    // 过滤空串/空值: 空串会导致 startsWith("") 恒为 true, 把所有机器都判成"忽略",
+    // 进而设备不登记、活跃数不更新、后台设备页全部被过滤隐藏 —— 这就是"后台看不到数据"的根因之一。
+    return list.some(x => !!x && String(mh).startsWith(x));
   } catch { return false; }
 }
 
@@ -1521,7 +1523,8 @@ export default {
         let list = Object.values(map).sort((a, b) => (b.last_seen || 0) - (a.last_seen || 0));
         try {
           const ign = JSON.parse(await env?.STATS?.get("ignore_machines") || "[]");
-          list = list.filter(d => !ign.some(x => String(d.machine || "").startsWith(x)));
+          // 过滤空串/空值, 避免空串 startsWith("") 恒真把设备页全部隐藏
+          list = list.filter(d => !ign.some(x => !!x && String(d.machine || "").startsWith(x)));
         } catch {}
         return jsonResp({ ok: true, data: list });
       }
