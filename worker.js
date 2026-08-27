@@ -871,13 +871,25 @@ export default {
           } catch (e) { console.error("[trial-check]", e); }
         }
 
-        // 6g. 付费客户放行 + 老客户白名单: 非试用码(payload.trial != 1)一律放行并登记白名单。
-        //     试用码(trial===1)由 6c 试用逻辑承担; 破解(签名不合法)已被上方 RSA 验签拒绝。
-        //     【不再用"≥365天"卡付费客户】——年费码签发天数不一(如350天), 卡天数会误拒付费客户,
-        //     导致"无法激活/授权非长期"的投诉; 付费与否以"是否试用码"为准即可。
+        // 6g. 合法性判定: 白名单豁免 + 一年/永久/试用 放行, 其余(短期付费)判非法 not_longterm。
+        //     - 试用码(trial===1): 由 6c 试用逻辑承担, 合法;
+        //     - 老客户白名单(loyal_machines)内机器: 豁免, 直接放行(不卡天数);
+        //     - 永久(exp==0): 放行; 一年授权(exp-gen >= 360天): 放行并登记白名单;
+        //     - 其余(非一年非试用): 拒绝 -> 非法, 可吊销。
         try {
-          if (payload.tier && payload.tier !== "trial" && payload.trial !== 1) {
-            await addLoyal(env, machineCode, lid, tier);   // 非试用=付费, 登记老客户白名单
+          if (payload.trial !== 1) {
+            const _loyal = await isLoyal(env, machineCode);
+            if (!_loyal) {
+              const _gen = payload.gen || 0;
+              const _exp = payload.exp || 0;
+              const _isPermanent = _exp === 0;
+              const _isYear = _exp > 0 && _gen > 0 && (_exp - _gen) >= 360 * 86400;
+              if (!_isPermanent && !_isYear) {
+                _log(lid, machineCode, "fail", "not_longterm");
+                return jsonResp({ ok: false, error: "not_longterm (非一年/非试用授权, 判非法)" }, 403);
+              }
+              await addLoyal(env, machineCode, lid, tier);   // 一年/永久 登记老客户白名单
+            }
           }
         } catch (e) { console.error("[longterm-check]", e); }
 
