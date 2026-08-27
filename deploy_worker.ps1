@@ -1,4 +1,4 @@
-# deploy_worker.ps1 - 一键用 Cloudflare REST API 部署 Worker (jyt-license-server)
+﻿# deploy_worker.ps1 - 一键用 Cloudflare REST API 部署 Worker (jyt-license-server)
 #
 # 用法(推荐: 环境变量方式, 真正一键):
 #   $env:CF_API_TOKEN = "cfr_你的新Token"
@@ -69,7 +69,7 @@ Write-Host ">>> [1/2] 上传 worker.js ..." -ForegroundColor Cyan
 & $curl -k -S -f -X PUT "https://api.cloudflare.com/client/v4/accounts/$accountId/workers/scripts/$scriptName" `
     -H "Authorization: Bearer $token" `
     -F "metadata=$metadata;type=application/json" `
-    -F "worker.js=@$workerPath;type=application/javascript+module"
+    -F "worker.js=@$workerPath;type=application/javascript+module" 2>$null
 if ($LASTEXITCODE -ne 0) { Write-Error "上传失败 (检查 Token 是否有效 / 代理是否可达)"; exit 1 }
 
 if ($adminKey) {
@@ -78,7 +78,7 @@ if ($adminKey) {
     & $curl -k -S -f -X PUT "https://api.cloudflare.com/client/v4/accounts/$accountId/workers/scripts/$scriptName/secrets/ADMIN_KEY" `
         -H "Authorization: Bearer $token" `
         -H "Content-Type: application/json" `
-        --data $secretBody
+        --data $secretBody 2>$null
     if ($LASTEXITCODE -ne 0) { Write-Error "设置 ADMIN_KEY 失败"; exit 1 }
 } else {
     Write-Host ">>> [2/2] 跳过 ADMIN_KEY (沿用线上已有值)" -ForegroundColor Yellow
