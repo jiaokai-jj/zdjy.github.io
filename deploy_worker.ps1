@@ -62,13 +62,16 @@ $env:NO_PROXY    = "localhost,127.0.0.1"
 if (-not (Test-Path $workerPath)) { Write-Error "找不到 worker.js: $workerPath"; exit 1 }
 
 $metadata = '{"main_module":"worker.js","compatibility_date":"2024-09-01","bindings":[{"type":"kv_namespace","name":"STATS","namespace_id":"' + $kvNsId + '"}]}'
+# PS5.1 传参吞掉 JSON 内双引号 -> CF 报 10021; 写临时文件由 curl 读入
+$metaFile = Join-Path $env:TEMP ("cf_worker_meta_" + $scriptName + ".json")
+[System.IO.File]::WriteAllText($metaFile, $metadata, [System.Text.Encoding]::ASCII)
 
 $curl = "curl.exe"
 
 Write-Host ">>> [1/2] 上传 worker.js ..." -ForegroundColor Cyan
 & $curl -k -S -f -X PUT "https://api.cloudflare.com/client/v4/accounts/$accountId/workers/scripts/$scriptName" `
     -H "Authorization: Bearer $token" `
-    -F "metadata=$metadata;type=application/json" `
+    -F "metadata=<$metaFile;type=application/json" `
     -F "worker.js=@$workerPath;type=application/javascript+module" 2>$null
 if ($LASTEXITCODE -ne 0) { Write-Error "上传失败 (检查 Token 是否有效 / 代理是否可达)"; exit 1 }
 
