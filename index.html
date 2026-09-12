@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>睿欣科技 | 短线智能交易系统 v5.0.0</title>
+    <title>睿欣科技 | 短线智能交易系统 v5.0.1</title>
     <!-- 性能修复: 移除 Google Fonts(国内被墙/极慢, 会卡白屏)。改用系统字体栈, 中文用苹方/微软雅黑。 -->
     <style>
         :root {
@@ -314,7 +314,7 @@
             </div>
             <div class="top-stats-bar" style="display:flex;justify-content:center;gap:20px;padding:8px 16px;flex-wrap:wrap;position:relative;z-index:10"><span style="color:#a0b8d0;font-size:0.75rem">📊 访问 <b style="color:#68d4f0" class="js-pv">--</b></span><span style="color:#a0b8d0;font-size:0.75rem">📥 下载 <b style="color:#68d4f0" class="js-dl">--</b></span></div><section class="section section-hero" id="hero">
                 <div class="hero-text reveal">
-                    <span class="version-tag" style="background:#1f6f54;color:#fff">v5.0.0 · 正式版</span>
+                    <span class="version-tag" style="background:#1f6f54;color:#fff">v5.0.1 · 正式版</span>
                     <h1>短线智能<br><span class="gradient-text">交易系统</span></h1>
                     <p>让AI为您捕捉每一个交易机会。全自动智能分析、毫秒级极速下单、严格风险控制，助您在短线交易中抢占先机。</p>
                     <div style="display:flex;gap:16px;margin-top:20px">
@@ -467,7 +467,7 @@
                 <div class="download-inner reveal">
                     <div class="download-content">
                         <div>
-                            <span class="version-tag">v5.0.0 · 免安装版 · Windows</span>
+                            <span class="version-tag">v5.0.1 · 免安装版 · Windows</span>
                             <h3 style="font-size:1.5rem;margin-bottom:6px">选择你的版本</h3>
                             <p style="color:var(--text-secondary)">系统要求：Windows 10 / 11 · 64位</p>
                             <div class="download-feature-tags">
@@ -475,22 +475,34 @@
                             </div>
                             <div class="dl-options">
                                 <div class="dl-card dl-stable">
-                                    <div class="dl-card-head"><span class="dl-name">✅ 正式版</span><span class="dl-badge">稳定推荐</span></div>
-                                    <p class="dl-desc">v5.0.0 正式发布，长期稳定，适合日常实盘使用。</p>
-                                    <a href="#" class="btn btn-primary" onclick="handleDownload('stable');return false">下载正式版 (约70MB)</a>
+                                    <div class="dl-card-head"><span class="dl-name">✅ 标准版</span><span class="dl-badge">稳定推荐</span></div>
+                                    <p class="dl-desc">v5.0.1 标准版，核心交易全功能，适合日常实盘使用。</p>
+                                    <p style="margin:6px 0 10px;font-size:.66rem;color:var(--text-secondary);word-break:break-all">&#128274; SHA256 <code id="sha-standard" style="color:#7aa8ff">d65ab4ad3f464a0ce053d98d4bb81b4fc0f40c1bf2f8133ae54db76eb59a4394</code></p>
+                                    <a href="#" class="btn btn-primary" onclick="handleDownload('standard');return false">下载标准版 (约39MB)</a>
                                 </div>
                                 <div class="dl-card dl-beta">
-                                    <div class="dl-card-head"><span class="dl-name">🧪 测试版</span><span class="dl-badge">敬请期待</span></div>
-                                    <p class="dl-desc" style="color:#8aa">测试版本暂未开放，敬请期待；如需试用请添加客服QQ 290144665 申请。</p>
-                                    <a href="#" class="btn btn-outline" style="pointer-events:none;opacity:.5;cursor:not-allowed" onclick="return false">暂无测试版下载</a>
+                                    <div class="dl-card-head"><span class="dl-name">🚀 专业版</span><span class="dl-badge">功能更强</span></div>
+                                    <p class="dl-desc">v5.0.1 专业版，含风控与条件单，适合进阶用户。</p>
+                                    <p style="margin:6px 0 10px;font-size:.66rem;color:var(--text-secondary);word-break:break-all">&#128274; SHA256 <code id="sha-pro" style="color:#7aa8ff">d7b085363998d61265d974dd040f93c6c8f0575acdfca0e0864f666ee85f3fd0</code></p>
+                                    <a href="#" class="btn btn-outline" onclick="handleDownload('pro');return false">下载专业版 (约39MB)</a>
                                 </div>
                             </div>
-                            <p style="margin-top:12px;font-size:.82rem;color:var(--text-secondary)">📥 累计下载 <span class="js-dl">--</span> 次 · 两个版本激活 / 购买流程完全一致</p>
+                            <p style="margin-top:12px;font-size:.82rem;color:var(--text-secondary)">📥 累计下载 <span class="js-dl">--</span> 次 · 标准版 / 专业版 激活与购买流程一致</p>
+                            <details style="margin-top:10px;text-align:left">
+                                <summary style="cursor:pointer;font-size:.82rem;color:var(--text-secondary)">🆕 v5.0.1 更新说明（点击展开）</summary>
+                                <a href="updates.html" style="display:inline-block;margin-top:8px;font-size:.82rem;color:#7aa8ff">📋 查看完整更新日志 →</a>
+                                <div style="margin-top:8px;font-size:.78rem;color:var(--text-secondary);line-height:1.9">
+                                    · 持仓读取全新升级，不再被验证码弹窗打扰<br>
+                                    · 买入成交后自动加入自选股，无需手工添加<br>
+                                    · 止损与风控判断更精准，不再重复下单、反复刷屏<br>
+                                    · 启动更快，界面配色与日志显示更易读
+                                </div>
+                            </details>
                         </div>
                         <div class="download-aside">
                             <h4 style="color:#fff">📋 使用说明</h4>
                             <ol>
-                                <li>点击按钮下载ZIP压缩包</li><li>解压到任意文件夹</li><li>双击运行 智能自动交易系统.exe</li>
+                                <li>点击按钮下载ZIP压缩包</li><li>解压到任意文件夹</li><li>双击运行 智能交易系统.exe</li><li>可用左侧 SHA256 校验压缩包完整性</li>
                                 <li>软件自动生成硬件注册码</li><li>添加客服QQ 290144665 提供注册码激活</li>
                             </ol>
                             <p style="font-size:0.72rem;color:var(--text-secondary)">客服时间：工作日 9:00-18:00</p>
@@ -541,9 +553,9 @@
                 </div>
             </section>
             <section class="version-section reveal">
-                <div class="version-badge" id="versionBadge" onclick="toggleChangelog()">当前版本 v5.0.0 <span class="arrow">▼</span></div>
+                <div class="version-badge" id="versionBadge" onclick="toggleChangelog()">当前版本 v5.0.1 <span class="arrow">▼</span></div>
                 <div class="changelog-panel" id="changelogPanel">
-                    <h4>更新日志 <span class="version-tag">v5.0.0</span></h4>
+                    <h4>更新日志 <span class="version-tag">v5.0.1</span></h4>
                     <ul>
                         <li>全新 AI 驱动短线交易引擎上线</li>
                         <li>深度强化学习策略模型 PPO + Transformer 架构</li>
@@ -759,7 +771,7 @@ function toggleChat(){chatOpen=!chatOpen;chatWindow.classList.toggle("open",chat
 function sendMessage(){var text=chatInput.value.trim();if(!text)return;addBubble(text,"user");chatInput.value="";setTimeout(function(){addBubble(getReply(text),"bot")},500)}
 function addBubble(msg,type){var d=document.createElement("div");d.className="chat-bubble "+type;d.textContent=msg;chatMessages.appendChild(d);chatMessages.scrollTop=chatMessages.scrollHeight}
 function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥588/年，专业版(推荐)¥1088/年。均为年度订阅，支持1个月无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助申请7天免费试用高级版（全功能），或添加客服QQ 290144665 由客服发放正式激活码。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
-function handleDownload(variant){var file,name;if(variant==='beta'){file='downloads/智能交易系统_测试版.7z';name='智能交易系统_测试版.7z'}else{file='downloads/智能交易系统.zip';name='智能交易系统.zip'}fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download",variant:variant,agent:getAgent()})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href=file;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a)}
+function handleDownload(variant){var file,name;if(variant==='standard'){file='downloads/智能交易系统_标准版.zip';name='智能交易系统_标准版.zip'}else if(variant==='pro'){file='downloads/智能交易系统_专业版.zip';name='智能交易系统_专业版.zip'}else{file='downloads/智能交易系统_标准版.zip';name='智能交易系统_标准版.zip'}fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download",variant:variant,agent:getAgent()})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href=file;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){var href=this.getAttribute("href");if(href==="#")return;var target=document.querySelector(href);if(target){e.preventDefault();var offset=window.innerWidth<=900?65:18;window.scrollTo({top:target.offsetTop-offset,behavior:"smooth"})}})});
 var catArea=document.getElementById("catArea"),catContainer=document.getElementById("catContainer");
 if(catArea&&catContainer){catArea.addEventListener("click",function(e){var rect=catArea.getBoundingClientRect();var x2=e.clientX-rect.left,y2=e.clientY-rect.top;var cw=120,ch=120;var cx2=Math.min(Math.max(x2,cw/2),rect.width-cw/2),cy2=Math.min(Math.max(y2,ch/2),rect.height-ch/2);catContainer.style.left=cx2+"px";catContainer.style.top=cy2+"px";catContainer.style.transform="translate(-50%,-50%)"})}

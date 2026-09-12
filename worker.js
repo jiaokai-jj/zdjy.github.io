@@ -89,7 +89,7 @@ async function getAdminKey(env) {
 }
 
 // v4.0 版本信息
-const CURRENT_VERSION = "5.0.0";
+const CURRENT_VERSION = "5.0.1";
 const DOWNLOAD_URL = "https://www.jyt.cc.cd/";
 
 // 自助领取开关: false=关闭(一律转人工客服, 改回 true 并重新部署可重新开放)。
@@ -132,6 +132,43 @@ const ADMIN_HTML = `<!doctype html>
 </style>
 </head>
 <body>
+<script>
+/* [兼容自检] 纯 ES5 实现：老浏览器(IE/360兼容/微信内置)无法运行本页现代 JS,
+   此处先做特性检测 + 全局错误兜底, 直接给出可读原因, 避免“点登录没反应”。*/
+(function(){
+  function show(msg){
+    try{
+      if(document.getElementById('compatWarn')) return;
+      var d=document.createElement('div');
+      d.id='compatWarn';
+      d.style.cssText='background:#7f1d1d;border:1px solid #dc2626;color:#fecaca;padding:12px 16px;border-radius:8px;margin:12px 0;font-size:14px;line-height:1.7';
+      d.innerHTML=msg;
+      var w=document.querySelector('.wrap')||document.body;
+      w.insertBefore(d,w.firstChild);
+    }catch(e){}
+  }
+  window.__jytCompatFail=function(reason){
+    show('<b>【浏览器不兼容】本页在此浏览器上无法使用</b><br>'+
+         '原因：'+reason+'<br>'+
+         '请用 <b>Chrome 或 Edge 最新版</b> 打开（手机同理）。<br>'+
+         '不要用 IE、360安全浏览器“兼容模式”、微信/QQ 内置浏览器打开。<br>'+
+         '若暂时无法换浏览器，可直接使用“后台管理_终端版.bat”，功能完全一样。');
+  };
+  var miss=[];
+  try{ if(!window.Promise) miss.push('Promise'); }catch(e){ miss.push('Promise'); }
+  try{ if(!window.fetch) miss.push('fetch'); }catch(e){ miss.push('fetch'); }
+  try{ if(!Object.assign) miss.push('Object.assign'); }catch(e){ miss.push('Object.assign'); }
+  try{ if(!('includes' in Array.prototype)) miss.push('Array.includes'); }catch(e){ miss.push('Array.includes'); }
+  try{ new Function('return async function(){await 0}')(); }catch(e){ miss.push('async/await'); }
+  if(miss.length){ window.__jytCompatFail('缺少 '+miss.join('、')); }
+  window.addEventListener('error',function(ev){
+    var m=(ev && ev.message) ? String(ev.message) : '';
+    if(/SyntaxError/i.test(m) || /Unexpected|Invalid or unexpected/i.test(m)){
+      window.__jytCompatFail('脚本语法错误（'+m+'）');
+    }
+  },true);
+})();
+</script>
 <div class="wrap">
   <div id="login" class="card">
     <h1>JYT 管理后台</h1>
@@ -162,6 +199,17 @@ const ADMIN_HTML = `<!doctype html>
         <button class="ghost" onclick="loadAll()">刷新</button>
       </div>
       <table id="devTable"><thead><tr><th>注册码ID</th><th>机器码</th><th>版本</th><th>首次</th><th>最近活跃</th><th>IP</th><th></th></tr></thead><tbody></tbody></table>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid #334155">
+        <div class="row" style="justify-content:space-between">
+          <strong>封禁名单（机器码前缀 或 ip:地址）</strong>
+          <button class="ghost" onclick="loadBanned()">刷新</button>
+        </div>
+        <div class="row" style="margin:8px 0">
+          <input id="banInput" placeholder="如 7bf57ee985 或 ip:60.188.237.30" style="flex:1">
+          <button class="danger" onclick="banFromInput()">封禁</button>
+        </div>
+        <table id="banTable"><thead><tr><th>条目</th><th>加入时间</th><th>来源</th><th>原因</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
     </div>
     <div id="log" class="card hidden">
       <div class="row" style="justify-content:space-between;margin-bottom:8px">
@@ -176,6 +224,26 @@ const ADMIN_HTML = `<!doctype html>
       <div class="row" style="justify-content:space-between">
         <strong>已签发许可证</strong>
         <button class="ghost" onclick="loadAll()">刷新</button>
+        <button class="ghost" onclick="backfillIssued()">回填台账</button>
+      </div>
+      <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin:0 0 10px">
+        <div class="row" style="flex-wrap:wrap;gap:8px">
+          <input id="qMh" placeholder="机器码(32位)" style="flex:1;min-width:260px">
+          <select id="qTier" style="padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;font-size:14px">
+            <option value="premium">专业版 premium</option>
+            <option value="standard">标准版 standard</option>
+            <option value="flagship">旗舰版 flagship</option>
+            <option value="basic">基础版 basic</option>
+            <option value="trial">试用 trial</option>
+          </select>
+          <input id="qDays" value="365" style="width:90px" title="有效期天数，0=永久">
+          <input id="qBuyer" placeholder="客户备注(可选)" style="width:150px">
+          <button onclick="manualIssue()">签发</button>
+        </div>
+        <div id="qOut" class="hidden" style="margin-top:8px">
+          <textarea id="qLic" readonly style="width:100%;height:70px;font-family:monospace;background:#0f172a;color:#4ade80;border:1px solid #334155;border-radius:8px;padding:8px"></textarea>
+          <div class="row" style="margin-top:6px"><button class="ghost" onclick="copyLic()">复制激活码</button><span id="qMsg" class="muted"></span></div>
+        </div>
       </div>
       <table id="issTable"><thead><tr><th>注册码ID</th><th>客户</th><th>档位</th><th>机器码</th><th>签发时间</th><th>到期</th><th>操作</th></tr></thead><tbody></tbody></table>
     </div>
@@ -207,6 +275,8 @@ const ADMIN_HTML = `<!doctype html>
 <script>
 const API='/api/admin';
 let TOKEN=localStorage.getItem('jyt_admin')||'';
+// [登录健壮性] 任何接口 401 -> 清会话并退回登录页(排除 /login 自身, 避免误触发)
+(function(){var _of=window.fetch;window.fetch=async function(u,o){var r=await _of.apply(this,arguments);try{if(r&&r.status===401&&String(u).indexOf('/login')<0){try{localStorage.removeItem('jyt_admin');localStorage.setItem('jyt_relogin','1');}catch(e){}location.reload();}}catch(e){}return r;};})();
 function auth(h={}){return Object.assign({'X-Admin-Token':TOKEN},h);}
 async function login(){
   const k=document.getElementById('key').value.trim();
@@ -232,7 +302,7 @@ function showTab(t){
   document.getElementById('ord').classList.toggle('hidden',t!=='ord');
   document.getElementById('ag').classList.toggle('hidden',t!=='ag');
 }
-async function loadAll(){await stats();await devices();await logs();await issued();await loadOrders();await loadAgents();}
+async function loadAll(){await stats();await devices();await logs();await issued();await loadOrders();await loadAgents();await loadBanned();}
 async function stats(){
   try{
     const r=await fetch(API+'/stats',{headers:auth()});const j=await r.json();
@@ -264,6 +334,41 @@ async function revoke(lid){
   const r=await fetch(API+'/revoke',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({license:lid})});
   const j=await r.json();alert(j.ok?'已吊销':'失败: '+(j.error||''));loadAll();
 }
+async function manualIssue(){
+  const mh=document.getElementById("qMh").value.trim();
+  const tier=document.getElementById("qTier").value;
+  const days=parseInt(document.getElementById("qDays").value||"365");
+  const buyer=document.getElementById("qBuyer").value.trim();
+  const msg=document.getElementById("qMsg");msg.textContent="";
+  if(!mh){msg.textContent="请填写机器码";return;}
+  if(!confirm("为机器码 "+mh+" 签发 "+tier+"（"+days+"天，0=永久）？"))return;
+  try{
+    const r=await fetch(API+"/issue",{method:"POST",headers:auth({"Content-Type":"application/json"}),body:JSON.stringify({machine_code:mh,tier:tier,days:days,buyer:buyer})});
+    const j=await r.json();
+    if(j.ok){
+      document.getElementById("qOut").classList.remove("hidden");
+      document.getElementById("qLic").value=j.license;
+      document.getElementById("qMsg").textContent="已签发 lid="+j.lid+"，已登记进台账（已尝试复制）";
+      try{navigator.clipboard.writeText(j.license);}catch(e){}
+      issued();
+    } else { msg.textContent="失败: "+(j.error||""); }
+  }catch(e){msg.textContent="错误: "+e.message;}
+}
+function copyLic(){
+  const t=document.getElementById("qLic");
+  try{t.select();document.execCommand("copy");}catch(e){}
+  try{navigator.clipboard.writeText(t.value);}catch(e){}
+  document.getElementById("qMsg").textContent="已复制到剪贴板";
+}
+async function backfillIssued(){
+  try{
+    if(!confirm('用历史设备表补齐【已签发】台账？(只增不减，可重复执行)'))return;
+    const r=await fetch(API+'/issued/backfill',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:'{}'});
+    const j=await r.json();
+    alert(j.ok?('回填完成：新增 '+j.added+' 条，当前共 '+j.total+' 条'):('回填失败：'+(j.error||'')));
+    await issued();
+  }catch(e){alert('回填请求失败: '+e);}
+}
 async function delIssued(lid){
   if(!confirm('确认删除签发记录 '+lid+' ？此操作不可恢复'))return;
   const r=await fetch(API+'/issued/delete',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({lid:lid})});
@@ -282,12 +387,12 @@ async function issued(){
     const tb=document.querySelector('#issTable tbody');tb.innerHTML='';
     (j.data||[]).forEach(d=>{
       const tr=document.createElement('tr');
-      tr.innerHTML='<td><code>'+(d.lid||'')+'</code></td><td>'+(d.buyer||'-')+'</td><td>'+(d.tier||'')+'</td><td>'+(d.mh||'').slice(0,12)+'...</td><td>'+fmt(d.issued_at)+'</td><td>'+fmtExp(d.exp)+'</td><td><button class="danger" onclick="delIssued(\\''+(d.lid||'')+'\\')">删除</button></td>';
+      tr.innerHTML='<td><code>'+(d.lid||'')+'</code></td><td>'+(d.buyer||'-')+'</td><td>'+(d.tier||'')+'</td><td>'+(d.mh||'').slice(0,12)+'...</td><td>'+fmt(d.issued_at)+'</td><td>'+fmtExp(d.exp,d.source)+'</td><td><button class="danger" onclick="delIssued(\\''+(d.lid||'')+'\\')">删除</button></td>';
       tb.appendChild(tr);
     });
   }catch(e){}
 }
-function fmtExp(t){if(!t)return '永久';try{const d=new Date(t*1000);return d.toLocaleString('zh-CN',{hour12:false});}catch(e){return String(t);}}
+function fmtExp(t,src){if(!t)return src==='backfill'?'未知':'永久';try{const d=new Date(t*1000);return d.toLocaleString('zh-CN',{hour12:false});}catch(e){return String(t);}}
 function renderLog(){
   const f=document.getElementById('filter').value;const arr=(window._log||[]).filter(e=>f==='all'||e.result===f);
   const tb=document.querySelector('#logTable tbody');tb.innerHTML='';
@@ -351,7 +456,45 @@ async function creditAgent(){
     else msg.textContent='失败: '+(j.error||'');
   }catch(e){msg.textContent='错误: '+e.message;}
 }
+async function loadBanned(){
+  try{
+    const r=await fetch(API+'/banned',{headers:auth()});const j=await r.json();if(!j.ok)return;
+    const tb=document.querySelector('#banTable tbody');tb.innerHTML='';
+    (j.data||[]).forEach(x=>{
+      const k=(typeof x==='object')?(x.key||''):String(x||'');
+      const at=(typeof x==='object'&&x.at)?fmt(x.at):'';
+      const src=(typeof x==='object')?(x.source||''):'';
+      const why=(typeof x==='object')?(x.reason||''):'';
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td><code>'+k+'</code></td><td>'+at+'</td><td>'+src+'</td><td>'+why+'</td><td><button class="ghost" onclick="unban(\\''+k+'\\')">解封</button></td>';
+      tb.appendChild(tr);
+    });
+  }catch(e){}
+}
+async function banFromInput(){
+  const v=(document.getElementById('banInput').value||'').trim();
+  if(!v){alert('请填写机器码或 ip:地址');return;}
+  await banMachine(v);
+}
+async function banMachine(k0){
+  let k=k0;
+  if(!k){k=prompt('要封禁的机器码（或 ip:1.2.3.4）:');}
+  if(!k)return;
+  if(!confirm('确认封禁 '+k+' ？该机器将无法通过任何授权校验'))return;
+  try{
+    const r=await fetch(API+'/ban',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({key:k,reason:'manual'})});
+    const j=await r.json();alert(j.ok?'已封禁':'失败: '+(j.error||''));loadAll();
+  }catch(e){alert('错误: '+e.message);}
+}
+async function unban(k){
+  if(!confirm('确认解封 '+k+' ？'))return;
+  try{
+    const r=await fetch(API+'/unban',{method:'POST',headers:auth({'Content-Type':'application/json'}),body:JSON.stringify({key:k})});
+    const j=await r.json();alert(j.ok?'已解封':'失败: '+(j.error||''));loadAll();
+  }catch(e){alert('错误: '+e.message);}
+}
 function fmt(t){if(!t)return'';const d=new Date(t);return d.toLocaleString('zh-CN',{hour12:false});}
+(function(){try{if(localStorage.getItem('jyt_relogin')==='1'){localStorage.removeItem('jyt_relogin');var _e=document.getElementById('lerr');if(_e)_e.textContent='会话已过期，请重新登录';var _k=document.getElementById('key');if(_k)_k.value='';}}catch(e){}})();
 if(TOKEN)enter();
 </script>
 </body></html>`;
@@ -441,6 +584,58 @@ async function signLicense(payload, env) {
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]
   );
   const jsonStr = JSON.stringify(payload); // 值为 ASCII，与 gen_license.py 输出逐字节一致
+  const data = new TextEncoder().encode(jsonStr);
+  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, data);
+  const payloadB64 = btoa(jsonStr);
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return payloadB64 + "." + sigB64;
+}
+
+// P0-1(可选): 可复现的 server_secret = HMAC(SERVER_SECRET_KEY, lid|mh|当日) 前 32 位十六进制。
+// 仅当配置了独立的 SERVER_SECRET_KEY 时才下发(显式启用, 默认关闭 -> 对现有客户零影响);
+// 未配置返回空串, 客户端 `d.get("server_secret") or None` 视为无 -> 走原有纯机器码密钥。
+// 注意: 一旦启用, 客户端会用该值派生金库密钥并在下次落盘时改写金库 -> 之后不宜撤下该 secret。
+async function genServerSecret(env, lid, mh) {
+  const ssKey = env && env.SERVER_SECRET_KEY;
+  if (!ssKey) return "";
+  try {
+    const day = new Date().toISOString().slice(0, 10); // YYYY-MM-DD, 每日轮换
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey("raw", enc.encode(ssKey), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("HMAC", key, enc.encode(lid + "|" + mh + "|" + day));
+    return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+  } catch (e) {
+    console.error("[genServerSecret]", e);
+    return "";
+  }
+}
+
+// P1-1: 由档位推导服务端权限视图, 作为时间锚票据下发的 perms。
+// 客户端 get_perm() 会对本地签名权限取交集(布尔与、数值取小) -> 服务端只能收权, 不能越权升级。
+// 口径与客户端 _build_perm 完全一致; 不含 daban/daban_manual -> 不会误伤旗舰隐藏功能。
+function permsForTier(tier) {
+  const isPaid = tier === "premium" || tier === "standard" || tier === "flagship";
+  return {
+    can_trade: tier !== "trial",
+    cond_order: tier === "premium" || tier === "flagship",
+    risk_control: tier === "premium" || tier === "flagship",
+    max_buys: isPaid ? 999999 : (tier === "basic" ? 10 : 0),
+    max_shares: isPaid ? 999999 : (tier === "basic" ? 1000 : 0),
+  };
+}
+
+// 时间锚专用签发: 与激活私钥(PRIVATE_KEY, 严格离线)隔离, 使用独立的 TIME_TICKET_PRIVATE_KEY。
+// 仅签发 {iat, lid, mh} 时间锚票据, 客户端用内置的专用公钥(_RSA_PUB_TT)验签。
+// 即便该密钥泄露, 也绝无法伪造激活授权(激活私钥始终离线), 符合最小权限。
+async function signTimeTicket(payload, env) {
+  const pem = env && env.TIME_TICKET_PRIVATE_KEY;
+  if (!pem) throw new Error("TIME_TICKET_PRIVATE_KEY 未配置：请执行 `wrangler secret put TIME_TICKET_PRIVATE_KEY` 填入 RSA 私钥(PKCS#8 PEM)");
+  const keyData = pemToArrayBuffer(pem);
+  const key = await crypto.subtle.importKey(
+    "pkcs8", keyData,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]
+  );
+  const jsonStr = JSON.stringify(payload);
   const data = new TextEncoder().encode(jsonStr);
   const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, data);
   const payloadB64 = btoa(jsonStr);
@@ -586,11 +781,21 @@ async function getMarketIndices() {
   return data;
 }
 
+// 安全 JSON 解析: 防御 UTF-8 BOM / 前导空白 / 解析异常 (BOM 静默致命, 曾致 loyal_machines 白名单从 8/27 起完全失效)
+function safeJSON(raw, def) {
+  try {
+    if (raw == null) return def;
+    let s = String(raw);
+    if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+    return JSON.parse(s);
+  } catch (e) { return def; }
+}
+
 // 老客户白名单 (长期/年费授权自动登记, 后台可导出复核; 白名单内机器豁免清扫)
 async function addLoyal(env, mh, lid, tier) {
   try {
     if (!env || !env.STATS || !mh) return;
-    const arr = JSON.parse(await env.STATS.get("loyal_machines") || "[]");
+    const arr = safeJSON(await env.STATS.get("loyal_machines"), []);
     if (!arr.some(x => x.mh === mh)) {
       arr.push({ mh, lid: lid || "", tier: tier || "", ts: Date.now() });
       await env.STATS.put("loyal_machines", JSON.stringify(arr));
@@ -600,7 +805,7 @@ async function addLoyal(env, mh, lid, tier) {
 async function isLoyal(env, mh) {
   try {
     if (!env || !env.STATS || !mh) return false;
-    const arr = JSON.parse(await env.STATS.get("loyal_machines") || "[]");
+    const arr = safeJSON(await env.STATS.get("loyal_machines"), []);
     return arr.some(x => x.mh === mh);
   } catch { return false; }
 }
@@ -616,16 +821,184 @@ async function isMachineIgnored(env, mh) {
   } catch { return false; }
 }
 
+// ========== 封禁名单 (KV: banned_machines) ==========
+// 条目支持两种：机器码前缀(如 "7bf57ee985") 或 IP 精确值(如 "ip:60.188.237.30")；
+// 也兼容 {key,at,source,reason} 对象形式。命中即无条件拒绝，客户端会锁定并退出。
+async function getBanned(env) {
+  try { return JSON.parse(await (env && env.STATS ? env.STATS.get("banned_machines") : "[]") || "[]") || []; }
+  catch { return []; }
+}
+function banKeyOf(x) { return (x && typeof x === "object") ? String(x.key || "") : String(x || ""); }
+function matchBanned(list, machineCode, ip) {
+  try {
+    const m = String(machineCode || ""), i = String(ip || "");
+    return (list || []).some(x => {
+      const k = banKeyOf(x).trim();
+      if (!k) return false;
+      if (k.slice(0, 3) === "ip:") return !!i && i === k.slice(3);
+      return !!m && m.startsWith(k);
+    });
+  } catch { return false; }
+}
+async function isBanned(env, machineCode, ip) {
+  return matchBanned(await getBanned(env), machineCode, ip);
+}
+async function banAdd(env, key, source, reason) {
+  try {
+    const k = String(key || "").trim();
+    if (!k || !(env && env.STATS)) return false;
+    const list = await getBanned(env);
+    if (list.some(x => banKeyOf(x) === k)) return false;
+    list.push({ key: k, at: Date.now(), source: source || "", reason: reason || "" });
+    await env.STATS.put("banned_machines", JSON.stringify(list));
+    return true;
+  } catch (e) { console.error("[banAdd]", e); return false; }
+}
+
+// ========== 软警告名单 (KV: warned_machines) ==========
+// 与 banned_machines 平行: 命中只「标记 + 下发警告」(response.warn), 不锁客户端。
+// 客户端(新构建)可据此展示非阻塞警告横幅; 旧构建忽略该字段(向后兼容)。
+async function getWarned(env) {
+  try { return JSON.parse(await (env && env.STATS ? env.STATS.get("warned_machines") : "[]") || "[]") || []; }
+  catch { return []; }
+}
+async function isWarned(env, machineCode, ip) {
+  return matchBanned(await getWarned(env), machineCode, ip);
+}
+async function warnAdd(env, key, source, reason) {
+  try {
+    const k = String(key || "").trim();
+    if (!k || !(env && env.STATS)) return false;
+    const list = await getWarned(env);
+    if (list.some(x => banKeyOf(x) === k)) return false;
+    list.push({ key: k, at: Date.now(), source: source || "", reason: reason || "" });
+    await env.STATS.put("warned_machines", JSON.stringify(list));
+    return true;
+  } catch (e) { console.error("[warnAdd]", e); return false; }
+}
+async function warnRemove(env, key) {
+  try {
+    const k = String(key || "").trim();
+    if (!k || !(env && env.STATS)) return false;
+    const list = await getWarned(env);
+    const nx = list.filter(x => banKeyOf(x) !== k);
+    if (nx.length === list.length) return false;
+    await env.STATS.put("warned_machines", JSON.stringify(nx));
+    return true;
+  } catch (e) { console.error("[warnRemove]", e); return false; }
+}
+
+// ========== 防降级封杀 (KV: ver_floor) ==========
+// 记录每台机器"实际用过的最高构建号"。一旦用过新版本, 旧版本再联网一律 403,
+// 彻底堵死"拿新授权回滚到旧漏洞版"的漏洞。升级本身不强制(见 min_build 软提示);
+// 只有"用过新版再回退"才封杀。排除清单(自测机)不参与, 避免开发自测被锁死。
+function verToInt(v) {
+  try {
+    const _s = String(v == null ? "" : v).trim();
+    if (!_s) return -1;
+    if (/^\d+$/.test(_s)) return parseInt(_s, 10);
+    let _m = _s.match(/^final-(\d+)$/i); if (_m) return parseInt(_m[1], 10);
+    _m = _s.match(/^(\d+)\s*\+\s*(\d+)$/); if (_m) return parseInt(_m[1], 10) + parseInt(_m[2], 10);
+    return -1;
+  } catch (e) { return -1; }
+}
+async function verFloorGet(env, machineCode) {
+  try {
+    const _m = JSON.parse((await env.STATS.get("ver_floor")) || "{}");
+    return parseInt(_m[String(machineCode || "")] || 0, 10) || 0;
+  } catch (e) { return 0; }
+}
+async function verFloorBump(env, machineCode, verStr) {
+  try {
+    const _n = verToInt(verStr);
+    const _k = String(machineCode || "");
+    if (_n < 0 || !_k || !(env && env.STATS)) return false;
+    if (await isMachineIgnored(env, _k)) return false;
+    const _m = JSON.parse((await env.STATS.get("ver_floor")) || "{}");
+    if ((parseInt(_m[_k] || 0, 10) || 0) >= _n) return false;
+    _m[_k] = _n;
+    await env.STATS.put("ver_floor", JSON.stringify(_m));
+    return true;
+  } catch (e) { return false; }
+}
+// 返回 >0 = 已用过更高版本(需至少该构建号) -> 降级拒绝; 0 = 放行
+async function verFloorBlocked(env, machineCode, verStr) {
+  try {
+    const _k = String(machineCode || "");
+    if (!_k) return 0;
+    if (await isMachineIgnored(env, _k)) return 0;
+    const _fl = await verFloorGet(env, _k);
+    if (_fl <= 0) return 0;
+    const _n = verToInt(verStr);
+    if (_n < 0) return 0;
+    return (_n < _fl) ? _fl : 0;
+  } catch (e) { return 0; }
+}
+// ========== 全局清退闸门 (KV: kill_build) ==========
+// 默认留空 = 不生效(老客户可继续用旧版, 只提示升级, 不硬封)。
+// 设成 "final-7" 后: 所有低于该构建号的客户端一律 403 硬封, 必须升级才能用。
+// 用途: 新版发布稳定运行一段时间后, 后台一键彻底清退旧版/漏洞版。
+// 排除清单(自测机)不参与, 免得开发自测被锁死。
+async function killBuildGet(env) {
+  try { if (env && env.STATS) return ((await env.STATS.get("kill_build")) || "").trim(); } catch (e) {}
+  return "";
+}
+async function killBuildHit(env, machineCode, verStr) {
+  try {
+    const _kb = await killBuildGet(env);
+    if (!_kb) return "";
+    const _k = String(machineCode || "");
+    if (_k && await isMachineIgnored(env, _k)) return "";
+    const _n = verToInt(verStr);
+    const _kn = verToInt(_kb);
+    if (_n < 0 || _kn < 0) return "";
+    return (_n < _kn) ? _kb : "";
+  } catch (e) { return ""; }
+}
+// ========== 自动封禁 ==========
+// 只针对"伪造/无效授权"类失败；expired / not_longterm / machine_mismatch 等正常商业状态一律不计。
+const _AB_REASONS = ["invalid_token", "signature_invalid", "invalid_payload"];
+// 由 logAudit 统一驱动：result==="ok" 清零；命中 _AB_REASONS 才累计。
+async function autoBanTick(env, entry) {
+  try {
+    const kv = env && env.STATS;
+    if (!kv || !entry) return;
+    const mh = String(entry.machine || "").trim();
+    if (!mh) return;
+    const key = "failw:" + mh;
+    if (String(entry.result || "") === "ok") {
+      try { await kv.delete(key); } catch {}
+      return;
+    }
+    if (_AB_REASONS.indexOf(String(entry.reason || "")) < 0) return;
+    let thr = 40;
+    try { const t = parseInt(await kv.get("auto_ban_threshold") || "", 10); if (t > 0) thr = t; } catch {}
+    if (thr <= 0) return;   // 阈值<=0 = 关闭自动封禁
+    const now = Date.now(), win = 24 * 3600 * 1000;
+    let rec = { t: [] };
+    try { rec = JSON.parse(await kv.get(key) || "null") || rec; } catch {}
+    rec.t = (rec.t || []).filter(x => now - x < win);
+    // 5 分钟去重：避免被高频伪造请求放大 KV 写入
+    if (rec.t.length && now - rec.t[rec.t.length - 1] < 300000) return;
+    rec.t.push(now);
+    await kv.put(key, JSON.stringify(rec), { expirationTtl: 3 * 24 * 3600 });
+    if (rec.t.length >= thr) await banAdd(env, mh, "auto", "fail_" + entry.reason + "x" + rec.t.length);
+  } catch (e) { console.error("[autoBanTick]", e); }
+}
+
 // ========== 审计 & 设备注册表 (KV) ==========
 async function logAudit(env, entry) {
   try {
     const kv = env && env.STATS;
     if (!kv) return;
+    // [排除清单] 自测机不写审计日志, 也不参与自动封禁统计(避免自己的机器被误封)
+    if (entry && entry.machine && await isMachineIgnored(env, entry.machine)) return;
     let arr = [];
     try { arr = JSON.parse(await kv.get("audit_log") || "[]"); } catch {}
     arr.unshift(entry);
     if (arr.length > 2000) arr = arr.slice(0, 2000);
     await kv.put("audit_log", JSON.stringify(arr));
+    await autoBanTick(env, entry);   // 自动封禁：同一机器码反复"伪造/无效授权"尝试 -> 达阈值自动封禁
   } catch (e) { console.error("[audit]", e); }
 }
 
@@ -752,6 +1125,13 @@ export default {
         const licenseKey = body.license || "";
         const machineCode = body.machine_code || "";
 
+        // [封禁闸门: 最高优先级] 命中 banned_machines -> 直接拒绝(客户端会锁定并退出)
+        if (await isBanned(env, machineCode, _ip)) {
+          _log("", machineCode, "fail", "banned");
+          return jsonResp({ ok: false, error: "banned", banned: true }, 403);
+        }
+        const _warnMsg = await isWarned(env, machineCode, _ip) ? "您的机器存在异常登录行为，已被系统标记，请联系客服核实(www.jyt.cc.cd)。" : null;
+
         if (!licenseKey || !machineCode) {
           _log("", machineCode, "fail", "missing_params");
           return jsonResp({ ok: false, error: "missing parameters" }, 400);
@@ -804,9 +1184,24 @@ export default {
           try {
             if (env && env.STATS) { const _kv = (await env.STATS.get("min_build")) || ""; if (_kv) _minBuild = _kv; }
           } catch {}
+          const _real = decodeLicVer(payload);
+          const _clientVer = (_real >= 0) ? ("final-" + _real) : ((body.ver || "").toString().trim());
+          // 防降级封杀: 以"客户端实际上报的构建号" body.ver 为准。
+          // 不能用 payload.ver(授权码里的构建号): 那只代表"签发时对应版本",
+          // 挡不住"拿新签发的授权码 + 旧版客户端"回滚的漏洞。
+          const _bodyVer = (body.ver || "").toString().trim();
+          { const _fl = await verFloorBlocked(env, machineCode, _bodyVer);
+            if (_fl > 0) {
+              _log("", machineCode, "fail", "version_outdated");
+              return jsonResp({ ok: false, error: "version_outdated", reason: "downgrade_blocked", min_required: "final-" + _fl }, 403);
+            } }
+          // 全局清退闸门: 低于 kill_build 一律硬封
+          { const _kb = await killBuildHit(env, machineCode, _bodyVer);
+            if (_kb) {
+              _log("", machineCode, "fail", "version_outdated");
+              return jsonResp({ ok: false, error: "version_outdated", reason: "build_retired", min_required: _kb }, 403);
+            } }
           if (_minBuild) {
-            const _real = decodeLicVer(payload);
-            const _clientVer = (_real >= 0) ? ("final-" + _real) : ((body.ver || "").toString().trim());
             if (!_clientVer) {
               return jsonResp({ ok: false, error: "license revoked", reason: "version_outdated" }, 403);
             }
@@ -960,6 +1355,39 @@ export default {
           } catch {}
         }
 
+        // [台账] 首次成功激活即登记进 issued_licenses(按 lid 去重)——让控制台"已签发"页有真实数据。
+        // 注意：用离线注册机签发的授权码服务端无法事前登记，只能在此处"激活即登记"补齐台账。
+        try {
+          if (env && env.STATS && lid && !_ignored) {
+            const _iss = JSON.parse(await env.STATS.get("issued_licenses") || "[]");
+            const _ex = _iss.find(x => x && x.lid === lid);
+            if (_ex) {
+              // 已存在(多为 backfill 写入, exp 恒为 0) -> 用授权码内真实 payload.exp 补正
+              let _ch = false;
+              if (payload.exp && Number(payload.exp) > 0 && Number(_ex.exp || 0) !== Number(payload.exp)) { _ex.exp = Number(payload.exp); _ch = true; }
+              if (!_ex.tier && tier) { _ex.tier = tier; _ch = true; }
+              if (!_ex.mh && machineCode) { _ex.mh = machineCode; _ch = true; }
+              if (_ch) await env.STATS.put("issued_licenses", JSON.stringify(_iss.slice(-2000)));
+            } else {
+              _iss.push({ lid, tier, mh: machineCode, issued_at: Date.now(), exp: payload.exp || 0, source: "activate" });
+              await env.STATS.put("issued_licenses", JSON.stringify(_iss.slice(-2000)));
+            }
+          }
+        } catch (e) { console.error("[issued:register]", e); }
+
+        // 时间锚票据: 服务端独立私钥签名 {iat, lid, mh}, 客户端用内置专用公钥验签(不可伪造)。
+        let timeTicket = "";
+        try {
+          timeTicket = await signTimeTicket({
+            iat: now, lid: lid, mh: machineCode,
+            ver: (payload.ver != null ? String(payload.ver) : ((body.ver || "").toString().trim())) || "",
+            cap: 1, perms: tokenPayload.perms,
+          }, env);
+        } catch (e) {
+          console.error("[time_ticket:verify]", e);
+        }
+        await verFloorBump(env, machineCode, body.ver);
+        const serverSecret = await genServerSecret(env, lid, machineCode);
         return jsonResp({
           ok: true,
           upgrade_notice: _upgradeNotice,      // 宽限期内 => 客户端弹"请升级新版本"
@@ -970,6 +1398,8 @@ export default {
             lid: lid,
             exp: tokenPayload.exp,
             perms: tokenPayload.perms,
+            server_secret: serverSecret,
+            time_ticket: timeTicket, warn: _warnMsg,           // 服务端RSA签名时间锚(空串=签发失败, 客户端回退旧行为)
           }
         });
 
@@ -991,6 +1421,13 @@ export default {
         const licenseKey = body.license || "";
         const machineCode = body.machine_code || "";
 
+        // [封禁闸门] 命中 banned_machines -> 直接拒绝
+        if (await isBanned(env, machineCode, _ip)) {
+          _log("", machineCode, "fail", "banned");
+          return jsonResp({ ok: false, error: "banned", banned: true }, 403);
+        }
+        const _warnMsg = await isWarned(env, machineCode, _ip) ? "您的机器存在异常登录行为，已被系统标记，请联系客服核实(www.jyt.cc.cd)。" : null;
+
         if (!licenseKey || !machineCode) {
           _log("", machineCode, "fail", "missing_params");
           return jsonResp({ ok: false, error: "missing parameters" }, 400);
@@ -999,12 +1436,23 @@ export default {
         // 终结版版本闸门(与 /api/verify 同口径: 数值 >= 放行, 避免误锁比自己更新的合法构建)
         let _minBuild = "";
         try { if (env && env.STATS) _minBuild = (await env.STATS.get("min_build")) || ""; } catch {}
+        const _clientVer = (body.ver || "").toString().trim();
+        // 防降级封杀: 本机已用过更高版本 -> 旧版本一律拒绝(与 min_build 是否设置无关)
+        { const _fl = await verFloorBlocked(env, machineCode, _clientVer);
+          if (_fl > 0) {
+            _log("", machineCode, "fail", "version_outdated");
+            return jsonResp({ ok: false, error: "version_outdated", reason: "downgrade_blocked", min_required: "final-" + _fl }, 403);
+          } }
+        // 全局清退闸门: 低于 kill_build 一律硬封
+        { const _kb = await killBuildHit(env, machineCode, _clientVer);
+          if (_kb) {
+            _log("", machineCode, "fail", "version_outdated");
+            return jsonResp({ ok: false, error: "version_outdated", reason: "build_retired", min_required: _kb }, 403);
+          } }
         if (_minBuild) {
-          const _clientVer = (body.ver || "").toString().trim();
-          if (!_clientVer) {
-            return jsonResp({ ok: false, error: "license revoked", reason: "version_outdated" }, 403);
-          }
-          if (!buildAtLeast(_clientVer, _minBuild)) {
+          // [2026-09-11 放宽] 缺 ver 不再吊销：老版客户端可能不上报 ver，会误杀"我签发的合法客户"。
+          // 仅当客户端明确上报了 ver 且低于 min_build 时，才提示版本过旧。
+          if (_clientVer && !buildAtLeast(_clientVer, _minBuild)) {
             return jsonResp({ ok: false, error: "version_outdated", min_build: _minBuild }, 403);
           }
         }
@@ -1085,13 +1533,27 @@ export default {
         const tktPayload = { lid, tier, mh: machineCode, iat: now, exp: now + 86400, cap: 1 };
         const ticket = await generateToken(tktPayload, adminKey);
 
+        // P0-2 补全: 与 /api/verify 同源下发 RSA 签名的时间锚票据(客户端用内置 _RSA_PUB_TT 验签)。
+        let timeTicket = "";
+        try {
+          timeTicket = await signTimeTicket({
+            iat: now, lid: lid, mh: machineCode,
+            ver: (payload.ver != null ? String(payload.ver) : ((body.ver || "").toString().trim())) || "",
+            cap: 1, perms: permsForTier(tier),
+          }, env);
+        } catch (e) {
+          console.error("[time_ticket:ticket]", e);
+        }
+        const serverSecret = await genServerSecret(env, lid, machineCode);
+
         // 审计 + 设备活跃(排除清单内机器不登记)
         _log(lid, machineCode, "ok", "ticket");
         if (!(await isMachineIgnored(env, machineCode))) {
           await touchDevice(env, { lid, machine: machineCode, tier, ip: _ip });
         }
 
-        return jsonResp({ ok: true, data: { ticket, exp: tktPayload.exp, tier, lid } });
+        await verFloorBump(env, machineCode, body.ver);
+        return jsonResp({ ok: true, data: { ticket, exp: tktPayload.exp, tier, lid, server_secret: serverSecret, time_ticket: timeTicket, warn: _warnMsg } });
       } catch (e) {
         _log("", "", "fail", "exception:" + e.message);
         return jsonResp({ ok: false, error: e.message }, 500);
@@ -1108,6 +1570,13 @@ export default {
         const token = body.token || "";
         const machineCode = body.machine_code || "";
 
+        // [封禁闸门] 命中 banned_machines -> 直接拒绝(这就是堵住"反复刷验证"的那一类机器)
+        if (await isBanned(env, machineCode, _ip)) {
+          _log("", machineCode, "fail", "banned");
+          return jsonResp({ ok: false, error: "banned", banned: true }, 403);
+        }
+        const _warnMsg = await isWarned(env, machineCode, _ip) ? "您的机器存在异常登录行为，已被系统标记，请联系客服核实(www.jyt.cc.cd)。" : null;
+
         if (!token) {
           _log("", machineCode, "fail", "missing_token");
           return jsonResp({ ok: false, error: "missing token" }, 400);
@@ -1116,12 +1585,23 @@ export default {
         // 终结版版本闸门(与 /api/verify 同口径: 数值 >= 放行, 避免误锁比自己更新的合法构建)
         let _minBuild = "";
         try { if (env && env.STATS) _minBuild = (await env.STATS.get("min_build")) || ""; } catch {}
+        const _clientVer = (body.ver || "").toString().trim();
+        // 防降级封杀: 本机已用过更高版本 -> 旧版本一律拒绝(与 min_build 是否设置无关)
+        { const _fl = await verFloorBlocked(env, machineCode, _clientVer);
+          if (_fl > 0) {
+            _log("", machineCode, "fail", "version_outdated");
+            return jsonResp({ ok: false, error: "version_outdated", reason: "downgrade_blocked", min_required: "final-" + _fl }, 403);
+          } }
+        // 全局清退闸门: 低于 kill_build 一律硬封
+        { const _kb = await killBuildHit(env, machineCode, _clientVer);
+          if (_kb) {
+            _log("", machineCode, "fail", "version_outdated");
+            return jsonResp({ ok: false, error: "version_outdated", reason: "build_retired", min_required: _kb }, 403);
+          } }
         if (_minBuild) {
-          const _clientVer = (body.ver || "").toString().trim();
-          if (!_clientVer) {
-            return jsonResp({ ok: false, error: "license revoked", reason: "version_outdated" }, 403);
-          }
-          if (!buildAtLeast(_clientVer, _minBuild)) {
+          // [2026-09-11 放宽] 缺 ver 不再吊销：老版客户端可能不上报 ver，会误杀"我签发的合法客户"。
+          // 仅当客户端明确上报了 ver 且低于 min_build 时，才提示版本过旧。
+          if (_clientVer && !buildAtLeast(_clientVer, _minBuild)) {
             return jsonResp({ ok: false, error: "version_outdated", min_build: _minBuild }, 403);
           }
         }
@@ -1178,6 +1658,19 @@ export default {
         }
         _log(payload.lid || "", machineCode, "ok", "token_ok");
 
+        // 时间锚票据(与 /api/verify 同源): 服务端RSA签名 {iat, lid, mh}, 客户端用内置公钥验签。
+        let timeTicket = "";
+        try {
+          timeTicket = await signTimeTicket({
+            iat: now, lid: payload.lid || "", mh: machineCode,
+            ver: (payload.ver != null ? String(payload.ver) : "") || "",
+            cap: 1, perms: payload.perms || permsForTier(payload.tier || "trial"),
+          }, env);
+        } catch (e) {
+          console.error("[time_ticket:verify_token]", e);
+        }
+        await verFloorBump(env, machineCode, body.ver);
+        const serverSecret = await genServerSecret(env, payload.lid || "", machineCode);
         return jsonResp({
           ok: true,
           data: {
@@ -1185,6 +1678,8 @@ export default {
             lid: payload.lid,
             exp: payload.exp,
             perms: payload.perms,
+            server_secret: serverSecret,
+            time_ticket: timeTicket, warn: _warnMsg,
           }
         });
 
@@ -1529,6 +2024,91 @@ export default {
       const authed = await isAdmin(request, env);
       if (!authed) return jsonResp({ ok: false, error: "unauthorized" }, 401);
 
+      // 封禁名单：查看
+      if (path === "/api/admin/banned") {
+        const arr = await getBanned(env);
+        return jsonResp({ ok: true, data: arr });
+      }
+
+      // 封禁名单：添加（key = 机器码前缀 或 ip:<addr>）
+      if (path === "/api/admin/ban" && request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const key = (body.key || body.machine || "").toString().trim();
+          if (!key) return jsonResp({ ok: false, error: "缺少 key" }, 400);
+          const reason = (body.reason || "manual").toString().trim().slice(0, 60);
+          const ok = await banAdd(env, key, "manual", reason);
+          return jsonResp({ ok: true, key: key, added: ok });
+        } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+      }
+
+      // 封禁名单：移除（解封）
+      if (path === "/api/admin/unban" && request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const key = (body.key || "").toString().trim();
+          if (!key) return jsonResp({ ok: false, error: "缺少 key" }, 400);
+          const list = await getBanned(env);
+          const nx = list.filter(x => banKeyOf(x) !== key);
+          if (env && env.STATS) await env.STATS.put("banned_machines", JSON.stringify(nx));
+          return jsonResp({ ok: true, key: key, removed: list.length - nx.length });
+        } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+      }
+
+      // 防降级台账: 查看 / 清空(运维用)
+      if (path === "/api/admin/ver_floor") {
+        try {
+          const _m = JSON.parse((await env.STATS.get("ver_floor")) || "{}");
+          return jsonResp({ ok: true, data: _m });
+        } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+      }
+      if (path === "/api/admin/ver_floor/clear" && request.method === "POST") {
+        try {
+          await env.STATS.put("ver_floor", "{}");
+          return jsonResp({ ok: true, cleared: true });
+        } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+      }
+      // 全局清退闸门: 查看 / 设置(value 留空 = 关闭硬封)
+      if (path === "/api/admin/kill_build") {
+        try {
+          return jsonResp({ ok: true, kill_build: await killBuildGet(env), current: CURRENT_VERSION });
+        } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+      }
+      if (path === "/api/admin/kill_build/set" && request.method === "POST") {
+        try {
+          let _v = "";
+          try { const _b = await request.json(); _v = String((_b && _b.value) || "").trim(); } catch (e) {}
+          await env.STATS.put("kill_build", _v);
+          return jsonResp({ ok: true, kill_build: _v });
+        } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+      }
+      // 软警告名单：列表
+      if (path === "/api/admin/warned") {
+        const arr = await getWarned(env);
+        return jsonResp({ ok: true, data: arr });
+      }
+      // 软警告名单：添加（key = 机器码前缀 或 ip:<addr>）
+      if (path === "/api/admin/warn" && request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const key = (body.key || body.machine || "").toString().trim();
+          if (!key) return jsonResp({ ok: false, error: "缺少 key" }, 400);
+          const reason = (body.reason || "manual").toString().trim().slice(0, 60);
+          const ok = await warnAdd(env, key, "manual", reason);
+          return jsonResp({ ok: true, key: key, added: ok });
+        } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+      }
+      // 软警告名单：移除（解警告）
+      if (path === "/api/admin/unwarn" && request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const key = (body.key || "").toString().trim();
+          if (!key) return jsonResp({ ok: false, error: "缺少 key" }, 400);
+          const ok = await warnRemove(env, key);
+          return jsonResp({ ok: true, key: key, removed: ok ? 1 : 0 });
+        } catch (e) { return jsonResp({ ok: false, error: e.message }, 500); }
+      }
+
       // 设备（在线/已激活注册码; 排除清单内的机器不显示）
       if (path === "/api/admin/devices") {
         const map = JSON.parse(await env?.STATS?.get("devices") || "{}");
@@ -1543,8 +2123,13 @@ export default {
 
       // 老客户白名单导出(长期/年费授权自动登记; 供复核/备份, 防误扫稳定付费客户)
       if (path === "/api/admin/loyal") {
-        const arr = JSON.parse(await env?.STATS?.get("loyal_machines") || "[]");
-        return jsonResp({ ok: true, data: arr });
+        try {
+          const arr = safeJSON(await env?.STATS?.get("loyal_machines"), []);
+          return jsonResp({ ok: true, data: arr });
+        } catch (e) {
+          // 极端兜底: KV 损坏/解析失败时返回空数组而非 500, 便于后台自我排查
+          return jsonResp({ ok: true, data: [], warn: "loyal_machines 解析失败: " + (e.message || String(e)) }, 200);
+        }
       }
 
       // 老客户白名单: 手动添加(后台人工把某机器码/某客户加进白名单, 永久豁免清扫)
@@ -1561,7 +2146,7 @@ export default {
           const note = (body.note || "").toString().trim();
           if (!mhs.length) return jsonResp({ ok: false, error: "缺少 mhs 机器码列表" }, 400);
           if (env && env.STATS) {
-            const arr = JSON.parse(await env.STATS.get("loyal_machines") || "[]");
+            const arr = safeJSON(await env.STATS.get("loyal_machines"), []);
             for (const m of mhs) {
               if (!arr.some(x => x.mh === m)) {
                 arr.push({ mh: m, lid, tier, note, ts: Date.now(), manual: true });
@@ -1583,7 +2168,7 @@ export default {
           const mhs = (body.mhs || []).map(x => String(x).trim()).filter(Boolean);
           if (!mhs.length) return jsonResp({ ok: false, error: "缺少 mhs 机器码列表" }, 400);
           if (env && env.STATS) {
-            const arr = JSON.parse(await env.STATS.get("loyal_machines") || "[]");
+            const arr = safeJSON(await env.STATS.get("loyal_machines"), []);
             const nx = arr.filter(x => !mhs.includes(x.mh));
             await env.STATS.put("loyal_machines", JSON.stringify(nx));
           }
@@ -1596,7 +2181,7 @@ export default {
         const visits = (await env?.STATS?.get("visits")) || "0";
         const downloads = (await env?.STATS?.get("downloads")) || "0";
         const active = (await env?.STATS?.get("active_licenses")) || "0";
-        const audit = JSON.parse(await env?.STATS?.get("audit_log") || "[]");
+        const audit = safeJSON(await env?.STATS?.get("audit_log"), []);
         const today = new Date().toISOString().slice(0, 10);
         let ok_today = 0, fail_today = 0;
         audit.forEach(e => {
@@ -1617,7 +2202,7 @@ export default {
       if (path === "/api/admin/audit") {
         const u = new URL(request.url);
         const limit = Math.min(parseInt(u.searchParams.get("limit") || "300"), 2000);
-        const audit = JSON.parse(await env?.STATS?.get("audit_log") || "[]");
+        const audit = safeJSON(await env?.STATS?.get("audit_log"), []);
         const since = Date.now() - 10 * 60 * 1000;
         const bf = {};
         audit.filter(e => e.result === "fail" && new Date(e.ts).getTime() > since)
@@ -1627,6 +2212,33 @@ export default {
       }
 
       // 已签发许可证（签发数据库）
+      // [台账回填] 以 devices(成功激活过的许可证)为源，补齐 issued_licenses 中缺失的 lid。
+      // 场景：老客户的授权码由【离线注册机】签发，服务端事前无从登记；此端点把历史上
+      // 已成功激活过的机器一次性补进"已签发"台账，使该页立即可用。（只增不减，可重复调用）
+      if (path === "/api/admin/issued/backfill" && request.method === "POST") {
+        try {
+          const kv = env && env.STATS;
+          if (!kv) return jsonResp({ ok: false, error: "no kv" }, 500);
+          let devs = {};
+          try { devs = JSON.parse(await kv.get("devices") || "{}"); } catch {}
+          const arr = JSON.parse(await kv.get("issued_licenses") || "[]");
+          const seen = {};
+          arr.forEach(x => { if (x && x.lid) seen[x.lid] = 1; });
+          let added = 0;
+          const _ign = JSON.parse(await kv.get("ignore_machines") || "[]").filter(Boolean);
+          Object.keys(devs).forEach(k => {
+            const d = devs[k] || {};
+            const lid = d.lid || k;
+            if (!lid || seen[lid]) return;
+            if (_ign.some(x => d.machine && String(d.machine).startsWith(x))) return;  // 排除清单内不建台账
+            arr.push({ lid, tier: d.tier || "", mh: d.machine || "", issued_at: d.first_seen || Date.now(), exp: 0, source: "backfill" });
+            seen[lid] = 1; added++;
+          });
+          if (added) await kv.put("issued_licenses", JSON.stringify(arr.slice(-2000)));
+          return jsonResp({ ok: true, added, total: arr.length });
+        } catch (e) { return jsonResp({ ok: false, error: String(e) }, 500); }
+      }
+
       if (path === "/api/admin/issued") {
         const arr = JSON.parse(await env?.STATS?.get("issued_licenses") || "[]");
         return jsonResp({ ok: true, data: arr });
@@ -1691,6 +2303,51 @@ export default {
       if (path === "/api/admin/orders") {
         const arr = JSON.parse(await env?.STATS?.get("orders") || "[]");
         return jsonResp({ ok: true, data: arr });
+      }
+
+      // 本地签发 → 线上登记（管理员）：接收【本地离线注册机】签发的授权码，
+      // 服务端用内置公钥验签通过才登记进"已签发"台账 —— 激活私钥永远不必上云。
+      if (path === "/api/admin/issue/register" && request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const license = (body.license || "").toString().trim();
+          if (!license) return jsonResp({ ok: false, error: "缺少 license" }, 400);
+          const seg = license.split(".");
+          if (seg.length !== 2) return jsonResp({ ok: false, error: "授权码格式非法(应为 payload.sig)" }, 400);
+          let payloadBytes, sigBytes, payload = null;
+          try {
+            payloadBytes = b64decode(seg[0]);
+            sigBytes = b64decode(seg[1]);
+            payload = JSON.parse(new TextDecoder().decode(payloadBytes));
+          } catch (e) { return jsonResp({ ok: false, error: "授权码解码失败(格式非法)" }, 400); }
+          const okSig = await rsaVerify(payloadBytes, sigBytes);
+          if (!okSig) return jsonResp({ ok: false, error: "授权码验签失败（非本系统签发，拒绝登记）" }, 400);
+          await recordIssued(env, license, {
+            mh: payload.mh || "", tier: payload.tier || "", exp: payload.exp || 0,
+            buyer: (body.buyer || "").toString().slice(0, 40),
+            agent: (body.agent || "").toString().slice(0, 40),
+            source: "local",
+          });
+          return jsonResp({ ok: true, registered: true, lid: payload.lid || "", mh: payload.mh || "", tier: payload.tier || "", exp: payload.exp || 0 });
+        } catch (e) { return jsonResp({ ok: false, error: String((e && e.message) || e) }, 500); }
+      }
+
+      // 手动签发（管理员）：直接输入机器码签发激活码，无需先建订单；签发即登记进"已签发"台账。
+      if (path === "/api/admin/issue" && request.method === "POST") {
+        try {
+          const body = await request.json().catch(() => ({}));
+          const machineCode = (body.machine_code || "").toString().trim();
+          const tier = (body.tier || "").toString().trim();
+          const days = parseInt(body.days === undefined ? "365" : body.days, 10);
+          const TIERS = ["standard", "premium", "flagship", "basic", "trial"];
+          if (!machineCode) return jsonResp({ ok: false, error: "缺少机器码" }, 400);
+          if (TIERS.indexOf(tier) < 0) return jsonResp({ ok: false, error: "档位非法: " + tier }, 400);
+          if (isNaN(days) || days < 0) return jsonResp({ ok: false, error: "有效期天数非法(0=永久)" }, 400);
+          if (!(env && env.PRIVATE_KEY)) return jsonResp({ ok: false, error: "服务端未配置签发私钥：请执行 wrangler secret put PRIVATE_KEY (PKCS#8)" }, 500);
+          const built = await buildLicense(machineCode, tier, days, env);
+          await recordIssued(env, built.license, { mh: machineCode, tier, exp: built.exp, buyer: (body.buyer || "").toString().slice(0, 40), agent: (body.agent || "").toString().slice(0, 40), source: "manual" });
+          return jsonResp({ ok: true, license: built.license, lid: built.payload.lid, tier, exp: built.exp, days });
+        } catch (e) { return jsonResp({ ok: false, error: String((e && e.message) || e) }, 500); }
       }
 
       // 为订单签发激活码（管理员，走服务端私钥）
