@@ -255,6 +255,17 @@
             .btn{padding:10px 22px;font-size:0.82rem}
             .pricing-price{font-size:1.6rem}
         }
+        .upd-wrap{max-width:900px;margin:0 auto}
+        .upd-item{background:var(--glass-bg);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:22px 24px;margin-bottom:18px;backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shadow)}
+        .upd-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-bottom:12px;margin-bottom:6px;border-bottom:1px solid var(--border-subtle)}
+        .upd-ver{font-size:1.35rem;font-weight:700;color:var(--accent-cyan);letter-spacing:.5px}
+        .upd-date{font-size:.85rem;color:var(--text-secondary)}
+        .upd-tag{font-size:.72rem;padding:3px 10px;border-radius:999px;background:rgba(224,192,104,.15);color:var(--accent-gold);border:1px solid rgba(224,192,104,.3)}
+        .upd-group{margin-top:16px}
+        .upd-gtitle{font-size:.95rem;font-weight:600;color:var(--accent-blue);margin-bottom:8px;padding-left:10px;border-left:3px solid var(--accent-blue)}
+        .upd-list{margin:0;padding-left:24px;line-height:1.95;color:var(--text-secondary);font-size:.93rem}
+        .upd-list li{list-style:disc;margin-bottom:2px}
+        @media(max-width:640px){.upd-item{padding:18px 16px}}
     </style>
 </head>
 <body>
@@ -293,6 +304,7 @@
                 <li><a href="#pricing"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span> 版本价格</a></li>
                 <li><a href="#download"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> 下载专区</a></li>
                 <li><a href="#promo"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7.5 9.5h6a2 2 0 010 4h-4a2 2 0 000 4h6"/></svg></span> 推广合作</a></li>
+                                <li><a href="#changelog"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span> 更新日志</a></li>
                 <li><a href="#activate"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></span> 领取激活</a></li>
             </ul>
             <div class="sidebar-footer">© 2026 睿欣科技</div>
@@ -303,7 +315,7 @@
         </header>
         <div class="mobile-nav-overlay" id="mobileNavOverlay">
             <a href="#hero">首页</a><a href="#features">核心功能</a><a href="#guide">使用指南</a>
-            <a href="#video">视频教程</a><a href="#pricing">版本价格</a><a href="#download">下载</a><a href="#activate">领取</a>
+            <a href="#video">视频教程</a><a href="#pricing">版本价格</a><a href="#download">下载</a><a href="#changelog">更新日志</a><a href="#activate">领取</a>
         </div>
         <main class="main-content">
             <div class="index-bar" id="indexBar">
@@ -490,7 +502,7 @@
                             <p style="margin-top:12px;font-size:.82rem;color:var(--text-secondary)">📥 累计下载 <span class="js-dl">--</span> 次 · 标准版 / 专业版 激活与购买流程一致</p>
                             <details style="margin-top:10px;text-align:left">
                                 <summary style="cursor:pointer;font-size:.82rem;color:var(--text-secondary)">🆕 v5.0.1 更新说明（点击展开）</summary>
-                                <a href="updates.html" style="display:inline-block;margin-top:8px;font-size:.82rem;color:#7aa8ff">📋 查看完整更新日志 →</a>
+                                <a href="#changelog" style="display:inline-block;margin-top:8px;font-size:.82rem;color:#7aa8ff">📋 查看完整更新日志 ↓</a>
                                 <div style="margin-top:8px;font-size:.78rem;color:var(--text-secondary);line-height:1.9">
                                     · 持仓读取全新升级，不再被验证码弹窗打扰<br>
                                     · 买入成交后自动加入自选股，无需手工添加<br>
@@ -554,15 +566,15 @@
             </section>
             <section class="version-section reveal">
                 <div class="version-badge" id="versionBadge" onclick="toggleChangelog()">当前版本 v5.0.1 <span class="arrow">▼</span></div>
-                <div class="changelog-panel" id="changelogPanel">
-                    <h4>更新日志 <span class="version-tag">v5.0.1</span></h4>
+                                <div class="changelog-panel" id="changelogPanel">
+                    <h4>本次更新要点 <span class="version-tag">v5.0.1</span></h4>
                     <ul>
-                        <li>全新 AI 驱动短线交易引擎上线</li>
-                        <li>深度强化学习策略模型 PPO + Transformer 架构</li>
-                        <li>多层风控防火墙：仓位限制 + 日内回撤熔断 + 流动性校验</li>
-                        <li>实时可视化面板，WebSocket 驱动 PnL 与热力图</li>
-                        <li>多交易所统一接入：CTP / XTP / FIX 协议支持</li>
+                        <li>持仓读取不再依赖复制，告别验证码弹窗，获取更快更稳</li>
+                        <li>成交标的自动加入自选股，并可同步到通达信自选</li>
+                        <li>止损 / 风控状态实时同步，杜绝重复下单与误判</li>
+                        <li>启动速度与界面细节全面优化，日志分级更易读</li>
                     </ul>
+                    <div style="margin-top:12px;text-align:center"><a href="#changelog" onclick="setTimeout(function(){changelogPanel.classList.remove('show');versionBadge.classList.remove('open')},200)" style="font-size:.82rem;color:#7aa8ff">查看完整更新日志 ↓</a></div>
                 </div>
             </section>
             <section class="section" id="activate">
@@ -588,6 +600,92 @@
                         <span id="agentLink" style="font-size:.78rem;color:#8fd;word-break:break-all"></span>
                     </div>
                     <p style="font-size:.72rem;color:var(--text-secondary);margin-top:12px">所有激活码均由客服人工签发并登记在案，方便日后查询到期时间与换机处理。代理推广链接可带 <code>?ref=你的代理码</code>，自动归属统计。</p>
+                </div>
+            </section>
+            <section class="section reveal" id="changelog">
+                <div class="section-title-wrapper">
+                    <span class="version-tag">版本记录</span>
+                    <span class="section-title gradient-text-gold">更新日志</span>
+                    <span class="section-title-decor"></span>
+                </div>
+                <p class="section-subtitle">每次版本更新都记录在这里，方便你了解新增了什么、改进了什么</p>
+                <div class="upd-wrap">
+                    <div class="upd-item">
+                        <div class="upd-head">
+                            <span class="upd-ver">v5.0.1</span>
+                            <span class="upd-date">2026-09-12</span>
+                            <span class="upd-tag">推荐更新</span>
+                        </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">持仓与数据</div>
+                        <ul class="upd-list">
+                            <li>持仓读取改为全新方式，不再依赖复制粘贴，彻底告别「检测到您正在拷贝数据」的验证码弹窗</li>
+                            <li>持仓获取更快更稳定，启动即可显示，刷新不再时有时无</li>
+                            <li>优化账户切换后的持仓与行情同步，切换账户不再停留在旧数据</li>
+                            <li>适配更多券商版本（含远航版等特殊环境），持仓显示更可靠</li>
+                        </ul>
+                    </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">自选股</div>
+                        <ul class="upd-list">
+                            <li>新增「我的自选股」：买入成交后自动捕捉并加入，无需手工添加</li>
+                            <li>支持把成交标的自动同步到通达信自选股，两端都能看到</li>
+                            <li>自选股列表支持一键刷新与清空</li>
+                        </ul>
+                    </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">风控与止损</div>
+                        <ul class="upd-list">
+                            <li>止损监控状态在刷新后立即同步，不再出现「已卖出却仍显示可卖」的误判</li>
+                            <li>大盘熔断判断改为连续曲线模型，更贴合真实行情走势</li>
+                            <li>修复硬止损重复下单、卖单反复提示刷屏的问题，日志更清爽</li>
+                            <li>风控卖出数量按品种规则取整（股票 / ETF / 可转债各自规则）</li>
+                        </ul>
+                    </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">条件单与打板</div>
+                        <ul class="upd-list">
+                            <li>条件单「获取数据」改为必填校验，未取到数据不允许挂单，避免无效委托</li>
+                            <li>修复条件打板点「最新价」取不到名称 / 价格的问题</li>
+                            <li>修复部分网络环境下提示「行情源无返回」导致无法取数的问题</li>
+                        </ul>
+                    </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">委托交易</div>
+                        <ul class="upd-list">
+                            <li>修复卖出委托被重复发送、长时间停留在「待对账」不确认的问题</li>
+                            <li>优化委托状态回查逻辑，成交结果反馈更及时准确</li>
+                        </ul>
+                    </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">界面与体验</div>
+                        <ul class="upd-list">
+                            <li>启动速度大幅优化：窗口秒开，不再长时间空白等待</li>
+                            <li>主界面按钮配色统一，运行中的按钮高亮更醒目</li>
+                            <li>日志区改为多色分级显示，重要信息一眼可见</li>
+                            <li>修复已激活但底栏仍显示「未激活」的问题</li>
+                            <li>修复若干已知问题，整体稳定性与流畅度提升</li>
+                        </ul>
+                    </div>
+                    </div>
+                    <div class="upd-item">
+                        <div class="upd-head">
+                            <span class="upd-ver">v5.0.0</span>
+                            <span class="upd-date">2026-08</span>
+                        </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">首个 5.0 版本</div>
+                        <ul class="upd-list">
+                            <li>全新界面布局，操作分区更清晰</li>
+                            <li>标准版 / 专业版双版本，按需选择</li>
+                            <li>整合打板与 T+0 可转债双业务流程</li>
+                        </ul>
+                    </div>
+                    </div>
+                    <div style="margin-top:22px;text-align:center">
+                        <a href="index.html#download" class="btn btn-primary">前往下载 v5.0.1</a>
+                        <a href="updates.html" class="btn btn-outline" style="margin-left:10px">在独立页面打开</a>
+                    </div>
                 </div>
             </section>
             <footer class="footer reveal">
