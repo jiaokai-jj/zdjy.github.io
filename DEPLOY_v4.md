@@ -144,27 +144,39 @@ curl https://www.jyt.cc.cd/api/stats
 - 代理申请：在"在线领取激活码"区块填代理码点"生成推广链接"，或调用 `POST /api/agent/apply {"code":"AG123"}` 返回 `promo_url`。
 - 后台统计：管理后台 → **代理** Tab（`/api/admin/agents`）查看各代理的下载/访问/激活/订单数。
 
-### 2. 在线领取激活码
-- 客户在网站"在线领取激活码"填**机器码 + 版本**：
-  - **体验试用 (trial)**：服务端即时签发「7天免费试用高级版」激活码（premium 等级 + 7天过期，exe 全功能，过期自动收回），页面直接显示可复制，无需客服。**每台机器限领一次**。
-  - **付费版（体验/标准/专业）**：生成订单，提示加客服 QQ `290144665` 付款；管理员在后台**订单** Tab 点"签发"后发放。
-- 接口：`POST /api/issue {"machine_code","tier","agent?","days?"}`
+### 2. 在线领取激活码（已关闭）
+- `SELF_ISSUE_ENABLED = false`：自助领取入口已关闭，客户统一走客服人工发放。
+- 接口 `POST /api/issue` 现直接返回 403「自助领取已关闭，请添加客服QQ 290144665」。
+- 试用码也**不再由服务端签发**，与正式码一样由本地注册机离线签发后发放。
 
 ### 3. 购买下单
 - 价格页"立即购买 / 立即选用"→ 生成订单 → 提示联系客服付款。
 - 接口：`POST /api/order {"name","contact","tier","agent?","machine_code?"}`
 
-### 4. 服务端签发依赖私钥（必须配置）
-Worker 用私钥（`env.PRIVATE_KEY`）在线签发激活码，私钥**仅存于 Cloudflare Secret，绝不进仓库 / 前端**。
-- WebCrypto 要求 **PKCS#8** 格式私钥。若你的私钥是 PKCS#1（`BEGIN RSA PRIVATE KEY`），先转换：
-  ```bash
-  python -c "from Crypto.PublicKey import RSA; k=RSA.import_key(open('<你的私钥.pem>','rb').read()); open('priv_pkcs8.pem','wb').write(k.export_key('PEM', pkcs=8))"
-  ```
-- 设置密钥（粘贴 `priv_pkcs8.pem` 全文）：
-  ```bash
-  wrangler secret put PRIVATE_KEY
-  ```
-- 未配置时 `/api/issue` 的 trial 签发会返回 500（明确提示 PRIVATE_KEY 未配置）。
+### 4. 激活码签发：本地离线批量签发（服务端签发已永久停用）
+> **2026-09-14 安全整改**：云端 `PRIVATE_KEY` 已删除。
+> 原因：私钥留在云端 = 服务器一旦被攻破，攻击者可签发与合法码**无法区分**的授权码（断根级风险）。
+> 现在服务端**不具备签发能力**，只保留"登记 / 核查"职能。
+
+**签发流程**
+1. 本地注册机离线签发（私钥只在本机 `_PRIVATE_KEY_DO_NOT_SHIP/`，永不上云）：
+   ```bash
+   python batch_issue.py --template          # 生成名单模板 roster.csv
+   python batch_issue.py roster.csv          # 批量签发 -> 授权码清单_时间戳.csv
+   python batch_issue.py roster.csv --push   # 签发后逐条推送线上登记（可选）
+   ```
+2. 推送登记走 `POST /api/admin/issue/register`：服务端用内置**公钥**验签，通过才写入台账。
+   **登记只是备案，不是授权** —— 客户能否激活只取决于本地 RSA 验签。
+
+**服务端现状**
+- `POST /api/admin/issue`、`POST /api/admin/orders/issue` 已返回 `410 server_signing_disabled`。
+- 线上 secret 仅剩 `ADMIN_KEY`、`TIME_TICKET_PRIVATE_KEY`（后者只用于签时间锚，不参与签发）。
+
+**非法账户识别**
+- 验签通过但**从未登记**的授权码，会自动记入 KV `unregistered_hits`。
+- 后台：`GET /api/admin/unregistered` 查看；`POST /api/admin/unregistered/resolve {"lid","action"}`
+  处置（action = `register` 登记为合法 / `revoke` 加入吊销 / `ignore` 忽略）。
+- 放行逻辑不受影响：判定始终只看 RSA 验签，不会误伤正常客户。
 
 ### 5. 部署
 ```bash

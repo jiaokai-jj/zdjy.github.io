@@ -205,7 +205,7 @@ const ADMIN_HTML = `<!doctype html>
           <button class="ghost" onclick="loadBanned()">刷新</button>
         </div>
         <div class="row" style="margin:8px 0">
-          <input id="banInput" placeholder="如 7bf57ee985 或 ip:60.188.237.30" style="flex:1">
+          <input id="banInput" placeholder="如 abcd123456 或 ip:1.2.3.4" style="flex:1">
           <button class="danger" onclick="banFromInput()">封禁</button>
         </div>
         <table id="banTable"><thead><tr><th>条目</th><th>加入时间</th><th>来源</th><th>原因</th><th></th></tr></thead><tbody></tbody></table>
@@ -822,7 +822,7 @@ async function isMachineIgnored(env, mh) {
 }
 
 // ========== 封禁名单 (KV: banned_machines) ==========
-// 条目支持两种：机器码前缀(如 "7bf57ee985") 或 IP 精确值(如 "ip:60.188.237.30")；
+// 条目支持两种：机器码前缀(如 "abcd123456") 或 IP 精确值(如 "ip:1.2.3.4")；
 // 也兼容 {key,at,source,reason} 对象形式。命中即无条件拒绝，客户端会锁定并退出。
 async function getBanned(env) {
   try { return JSON.parse(await (env && env.STATS ? env.STATS.get("banned_machines") : "[]") || "[]") || []; }
@@ -1002,6 +1002,36 @@ async function logAudit(env, entry) {
   } catch (e) { console.error("[audit]", e); }
 }
 
+// [2026-09-14] 未登记授权观察清单：验签通过但从未经 register 推送登记的授权码。
+// 用途：识别非法/来源不明的账户（如私钥历史泄露后被伪造、旧注册机流出等）。
+// 只记录，不影响放行（放行由 RSA 验签决定）。
+async function recordUnregistered(env, info) {
+  try {
+    if (!env || !env.STATS || !info || !info.lid) return;
+    const kv = env.STATS;
+    let map = {};
+    try { map = JSON.parse(await kv.get("unregistered_hits") || "{}"); } catch { map = {}; }
+    const cur = map[info.lid];
+    map[info.lid] = {
+      lid: info.lid,
+      tier: info.tier || "",
+      mh: info.mh || "",
+      ip: info.ip || "",
+      exp: Number(info.exp || 0),
+      first_seen: cur ? cur.first_seen : Date.now(),
+      last_seen: Date.now(),
+      count: (cur ? Number(cur.count || 0) : 0) + 1,
+    };
+    // 上限保护：最多保留 2000 条，超量丢弃最旧的
+    const ks = Object.keys(map);
+    if (ks.length > 2000) {
+      ks.sort((a, b) => (map[a].last_seen || 0) - (map[b].last_seen || 0));
+      for (let i = 0; i < ks.length - 2000; i++) delete map[ks[i]];
+    }
+    await kv.put("unregistered_hits", JSON.stringify(map));
+  } catch (e) { console.error("[unregistered]", e); }
+}
+
 async function touchDevice(env, info) {
   try {
     const kv = env && env.STATS;
@@ -1047,6 +1077,25 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    // ---------- 腾讯(QQ/微信)网站安全验证文件 ----------
+    // 申诉"QQ/微信内打开被拦截"时, 腾讯要求在网站根目录放置该 TXT 校验所有权。
+    // 仅对这一个精确路径 early-return, 其它路径(含 /api/* 全部业务)完全不受影响。
+    if (path === "/60627da6ede98243d045634efe4bbaf7.txt") {
+      return new Response("e1e4f4fce1d58565d73d87125165730a3ce9daef", {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
+
+    // ---------- 裸域名 jyt.cc.cd -> 统一 301 到 www ----------
+    // [2026-09-13] 裸域名此前没有 DNS 记录, 在 QQ/微信/浏览器里打开就是"网页无法打开"
+    // (不是被拦截, 是根本解析不了)。现把裸域名作为本 Worker 的自定义域名接入,
+    // Cloudflare 会自动补 DNS 记录并签发证书; 这里把它整体 301 到 www, 保证:
+    //   1) 只有一套正式站点(www), 不会两套域名各自缓存/证书/备案不一致;
+    //   2) 上面的验证 TXT 已 early-return, 仍以 200 直出, 腾讯校验不受重定向影响。
+    if (url.hostname === "jyt.cc.cd") {
+      return Response.redirect("https://www.jyt.cc.cd" + path + url.search, 301);
+    }
 
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: CORS });
@@ -1355,8 +1404,9 @@ export default {
           } catch {}
         }
 
-        // [台账] 首次成功激活即登记进 issued_licenses(按 lid 去重)——让控制台"已签发"页有真实数据。
-        // 注意：用离线注册机签发的授权码服务端无法事前登记，只能在此处"激活即登记"补齐台账。
+        // [2026-09-14 安全整改] 台账只做"补正已登记授权"，不再把未知授权码自动登记为合法。
+        //   未登记的授权码写入 unregistered_hits 供后台核查（识别非法/来源不明的账户）；
+        //   放行逻辑完全不受影响 —— 判定仍只依赖 RSA 验签，不会误伤正常客户。
         try {
           if (env && env.STATS && lid && !_ignored) {
             const _iss = JSON.parse(await env.STATS.get("issued_licenses") || "[]");
@@ -1369,9 +1419,10 @@ export default {
               if (!_ex.mh && machineCode) { _ex.mh = machineCode; _ch = true; }
               if (_ch) await env.STATS.put("issued_licenses", JSON.stringify(_iss.slice(-2000)));
             } else {
-              _iss.push({ lid, tier, mh: machineCode, issued_at: Date.now(), exp: payload.exp || 0, source: "activate" });
-              await env.STATS.put("issued_licenses", JSON.stringify(_iss.slice(-2000)));
-            }
+              // 未登记: 不自动登记为合法, 记入待核查清单(用于识别非法/来源不明账户)
+              await recordUnregistered(env, { lid, tier, mh: machineCode,
+                ip: (typeof _ip !== "undefined" ? _ip : ""), exp: payload.exp || 0 });
+              }
           }
         } catch (e) { console.error("[issued:register]", e); }
 
@@ -1929,6 +1980,12 @@ export default {
         // exe 端按 payload.tier 给权限: premium=全功能+条件单; exp 过期即自动收回。
         // 安全: 每台机器限领一次试用, 防止同一机器反复白嫖(改机器码仍可绕过, 属最低成本风控)。
         if (tier === "trial") {
+          // [2026-09-14 安全整改] 签发私钥已下线，服务端不再具备签发能力。
+          // 试用码同样改由本地注册机离线签发后发放；此处显式拦截，避免开关被打开后抛出难懂的 500。
+          if (!(env && env.PRIVATE_KEY)) {
+            return jsonResp({ ok: false, error: "server_signing_disabled",
+              msg: "服务端签发已停用（私钥已下线）。试用码请由本地注册机离线签发后发放。" }, 410);
+          }
           if (env && env.STATS) {
             try {
               const tKey = "trial:" + machineCode;
@@ -2332,49 +2389,63 @@ export default {
         } catch (e) { return jsonResp({ ok: false, error: String((e && e.message) || e) }, 500); }
       }
 
-      // 手动签发（管理员）：直接输入机器码签发激活码，无需先建订单；签发即登记进"已签发"台账。
-      if (path === "/api/admin/issue" && request.method === "POST") {
+      // [2026-09-14] 未登记授权清单：验签通过但从未推送登记的授权码 -> 用于识别非法/来源不明账户。
+      if (path === "/api/admin/unregistered") {
         try {
-          const body = await request.json().catch(() => ({}));
-          const machineCode = (body.machine_code || "").toString().trim();
-          const tier = (body.tier || "").toString().trim();
-          const days = parseInt(body.days === undefined ? "365" : body.days, 10);
-          const TIERS = ["standard", "premium", "flagship", "basic", "trial"];
-          if (!machineCode) return jsonResp({ ok: false, error: "缺少机器码" }, 400);
-          if (TIERS.indexOf(tier) < 0) return jsonResp({ ok: false, error: "档位非法: " + tier }, 400);
-          if (isNaN(days) || days < 0) return jsonResp({ ok: false, error: "有效期天数非法(0=永久)" }, 400);
-          if (!(env && env.PRIVATE_KEY)) return jsonResp({ ok: false, error: "服务端未配置签发私钥：请执行 wrangler secret put PRIVATE_KEY (PKCS#8)" }, 500);
-          const built = await buildLicense(machineCode, tier, days, env);
-          await recordIssued(env, built.license, { mh: machineCode, tier, exp: built.exp, buyer: (body.buyer || "").toString().slice(0, 40), agent: (body.agent || "").toString().slice(0, 40), source: "manual" });
-          return jsonResp({ ok: true, license: built.license, lid: built.payload.lid, tier, exp: built.exp, days });
+          const map = JSON.parse(await env?.STATS?.get("unregistered_hits") || "{}");
+          const list = Object.keys(map).map(k => map[k]).sort((a, b) => (b.last_seen || 0) - (a.last_seen || 0));
+          return jsonResp({ ok: true, data: list, total: list.length });
         } catch (e) { return jsonResp({ ok: false, error: String((e && e.message) || e) }, 500); }
       }
 
-      // 为订单签发激活码（管理员，走服务端私钥）
-      if (path === "/api/admin/orders/issue" && request.method === "POST") {
-        const body = await request.json().catch(() => ({}));
-        const orderId = (body.order_id || "").toString().trim();
-        const machineCode = (body.machine_code || "").toString().trim();
-        const tier = (body.tier || "").toString().trim();
-        const days = parseInt(body.days || "365") || 365;
-        if (!orderId || !machineCode || !tier) return jsonResp({ ok: false, error: "missing params" }, 400);
-        let orderInfo = null;
-        try { const orders = JSON.parse(await env?.STATS?.get("orders") || "[]"); orderInfo = orders.find(x => x.order_id === orderId); } catch {}
-        const { license, exp } = await buildLicense(machineCode, tier, days, env);
-        await recordIssued(env, license, {
-          mh: machineCode, tier, exp,
-          agent: orderInfo ? orderInfo.agent : "",
-          buyer: orderInfo ? (orderInfo.name || orderInfo.contact) : "",
-          order_id: orderId,
-        });
+      // 处置未登记授权: action = register(登记为合法) | revoke(加入吊销) | ignore(忽略并移除)
+      if (path === "/api/admin/unregistered/resolve" && request.method === "POST") {
         try {
-          if (env?.STATS) {
-            const orders = JSON.parse(await env.STATS.get("orders") || "[]");
-            const o = orders.find(x => x.order_id === orderId);
-            if (o) { o.status = "issued"; o.issued_at = new Date().toISOString(); o.license_lid = (function(){try{var q=JSON.parse(atob(license.split(".")[0]));return q.lid||q.auth_id||"";}catch(e){return license.split(".")[0].slice(0,50);}})(); await env.STATS.put("orders", JSON.stringify(orders)); }
+          const body = await request.json().catch(() => ({}));
+          const lid = (body.lid || "").toString().trim();
+          const action = (body.action || "").toString().trim();
+          if (!lid) return jsonResp({ ok: false, error: "缺少 lid" }, 400);
+          if (["register", "revoke", "ignore"].indexOf(action) < 0)
+            return jsonResp({ ok: false, error: "action 必须是 register|revoke|ignore" }, 400);
+          const kv = env && env.STATS;
+          if (!kv) return jsonResp({ ok: false, error: "KV 不可用" }, 500);
+          const map = JSON.parse(await kv.get("unregistered_hits") || "{}");
+          const hit = map[lid];
+          if (!hit) return jsonResp({ ok: false, error: "清单中无此 lid" }, 404);
+          if (action === "register") {
+            const arr = JSON.parse(await kv.get("issued_licenses") || "[]");
+            if (!arr.find(x => x && x.lid === lid)) {
+              arr.push({ lid, tier: hit.tier || "", mh: hit.mh || "", issued_at: Date.now(), exp: hit.exp || 0, source: "manual_review" });
+              await kv.put("issued_licenses", JSON.stringify(arr.slice(-2000)));
+            }
+          } else if (action === "revoke") {
+            const rl = JSON.parse(await kv.get("revoked_licenses") || "[]");
+            if (rl.indexOf(lid) < 0) { rl.push(lid); await kv.put("revoked_licenses", JSON.stringify(rl)); }
+            try {
+              const as = JSON.parse(await kv.get("active_license_set") || "[]");
+              const ns = as.filter(l => !String(l).startsWith(lid));
+              await kv.put("active_license_set", JSON.stringify(ns));
+              await kv.put("active_licenses", String(ns.length));
+            } catch (e) {}
           }
-        } catch (e) {}
-        return jsonResp({ ok: true, license, tier, exp, order_id: orderId });
+          delete map[lid];
+          await kv.put("unregistered_hits", JSON.stringify(map));
+          return jsonResp({ ok: true, action, lid });
+        } catch (e) { return jsonResp({ ok: false, error: String((e && e.message) || e) }, 500); }
+      }
+
+      // [2026-09-14 安全整改] 服务端签发已永久停用。
+      // 原因：激活私钥留在云端 = 服务器被黑即可伪造与合法码无法区分的授权码（断根级风险）。
+      // 现行流程：本地离线批量签发(batch_issue.py) -> 本接口下方的 /api/admin/issue/register 推送登记。
+      if (path === "/api/admin/issue" && request.method === "POST") {
+        return jsonResp({ ok: false, error: "server_signing_disabled",
+          msg: "服务端签发已停用（私钥已下线）。请用本地注册机离线签发，再用 /api/admin/issue/register 推送登记。" }, 410);
+      }
+
+      // [2026-09-14 安全整改] 订单签发一并停用：订单只作为销售流水，不再参与签发。
+      if (path === "/api/admin/orders/issue" && request.method === "POST") {
+        return jsonResp({ ok: false, error: "server_signing_disabled",
+          msg: "服务端签发已停用（私钥已下线）。请走本地离线签发 + /api/admin/issue/register 登记。" }, 410);
       }
 
       // 删除订单（清理垃圾/测试/脚本刷的 pending 订单）

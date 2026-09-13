@@ -1,3 +1,14 @@
 
 # wrangler 本地缓存（不含凭据，纯构建缓存）
 .wrangler/
+
+# [2026-09-13] 线上 KV 数据转储：含客户机器码 / IP / 授权台账，严禁提交到公开仓库
+_kv_*.json
+_kv_*.txt
+*.prev
+
+# 本地一次性脚本与输出（诊断/打包/部署临时产物）
+_*.out.txt
+_push_out*.txt
+_diag_out.txt
+
