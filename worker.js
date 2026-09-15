@@ -101,9 +101,7 @@ async function getAdminKey(env) {
 }
 
 // 能力票据专用密钥（独立于 ADMIN_KEY）
-// [2026-09-14] 历史事故：能力票据用 ADMIN_KEY 做 HMAC，一旦重设管理员密钥，
-//   全网客户端缓存的 24 小时票据会集体失效 -> invalid_token -> 触发自动封禁 -> 无法自愈。
-//   现改用独立 secret TICKET_KEY（`wrangler secret put TICKET_KEY`）；
+//   两者若同源，轮转管理密钥会连带作废已签发的票据，属可避免的耦合，此处拆开独立管理。
 //   未配置时回退到 ADMIN_KEY，保证平滑迁移、不会出现断崖。
 async function getTicketKey(env) {
   if (env && env.TICKET_KEY) return env.TICKET_KEY;
@@ -1013,10 +1011,8 @@ async function killBuildHit(env, machineCode, verStr) {
 }
 // ========== 自动封禁 ==========
 // 只针对"伪造授权"类失败；expired / not_longterm / machine_mismatch 等正常商业状态一律不计。
-// [2026-09-14 修复] invalid_token 已从自动封禁名单移除：
-//   票据失效的成因包括服务端密钥轮换、客户端缓存旧票、时间漂移，属运维事件而非攻击。
-//   事故回溯：9/14 08:58 Secret Change 后票据集体失效 -> 客户云主机累计 40 次 invalid_token
-//   -> 被自动永久封禁(fail_invalid_tokenx40) -> banned 前置拦截导致连 /api/ticket 也进不去，无法自愈。
+// invalid_token 已从自动封禁名单移除：票据失效属运维事件而非攻击行为。
+//   客户端缓存旧票、时间漂移等都会触发，不应据此惩罚客户端；自动封禁只保留伪造类失败。
 const _AB_REASONS = ["signature_invalid", "invalid_payload"];
 // 由 logAudit 统一驱动：result==="ok" 清零；命中 _AB_REASONS 才累计。
 async function autoBanTick(env, entry) {

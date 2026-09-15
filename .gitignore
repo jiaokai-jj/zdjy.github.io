@@ -20,3 +20,7 @@ _*.mjs
 _*.txt
 *.bak
 *.bak_*
+
+# Python 缓存
+__pycache__/
+*.pyc
