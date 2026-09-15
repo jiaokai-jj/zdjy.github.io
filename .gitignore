@@ -12,3 +12,11 @@ _*.out.txt
 _push_out*.txt
 _diag_out.txt
 
+
+# [2026-09-15] 一次性排查/稽核脚本、node 小工具与 worker 备份
+#   worker.js.bak_* 内含服务端完整逻辑副本，公开发布无意义，仅保留在本地回滚用
+_*.py
+_*.mjs
+_*.txt
+*.bak
+*.bak_*

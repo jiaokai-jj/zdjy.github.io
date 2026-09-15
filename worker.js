@@ -12,6 +12,18 @@ po/n0CqDgjcqoQSw9BL0FjyazIEGkbELmDHEQoAOtVmFkN1aC8WQauE3rrP7PxBf
 PQIDAQAB
 -----END PUBLIC KEY-----`;
 
+// [2026-09-14] 备用（轮换）公钥：与主钥并行，主钥验不过时再试这把。
+// 对应私钥仅存于本机离线目录，永不上云。
+const RSA_PUB_KEY_PEM_ALT = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4wPYW9NlNm/JNu1JXdnZ
+153YxeA3rM+gY3TvZ0pyy9TQVP/fQnfIuTp9egBgxMXHTP0ygdrFgfoDH7CNY92T
+o9YfaAPLlrl2+Wq3Zdb63VBoIcXgR8ezxNFG4NQWo/AoV/G1Y0JTiAbYBaGSBXiA
+bF8SGeyAHO3y8dDo20HVHbQX60ojgFtvmyiwxB1cBhl0vZZCDrlHYkPnh6urO3Ct
+/ArnxJ6nPVDr9SyWx4jAwDxOKqBaQrE1m1zw69i4fMcBtt6cnSzZcK2ygiMOlowH
+kn8JNF9EesfcxNXg+w7fwq8iztcQEgl/lbl4l06VKXXzIY1SmQGEMl5CymOuHrH5
+KwIDAQAB
+-----END PUBLIC KEY-----`;
+
 // 版本比较: "final-2" >= "final-1" -> true; 用于 min_build 版本闸门(新版本放行, 旧版本清退)。
 // 兼容 "final-N" 数字后缀; 严格解析 ^final-(\d+)$, 并加一个合理上限, 拒绝异常极大值。
 // 注意: 客户端可自行上报 ver, 本函数只能防"格式异常/极端值", 无法防伪造——真正的根治是把
@@ -86,6 +98,38 @@ async function getAdminKey(env) {
   }
   // 极端情况（无 KV 也无 secret）：返回 null，管理接口将被拒绝
   return null;
+}
+
+// 能力票据专用密钥（独立于 ADMIN_KEY）
+// [2026-09-14] 历史事故：能力票据用 ADMIN_KEY 做 HMAC，一旦重设管理员密钥，
+//   全网客户端缓存的 24 小时票据会集体失效 -> invalid_token -> 触发自动封禁 -> 无法自愈。
+//   现改用独立 secret TICKET_KEY（`wrangler secret put TICKET_KEY`）；
+//   未配置时回退到 ADMIN_KEY，保证平滑迁移、不会出现断崖。
+async function getTicketKey(env) {
+  if (env && env.TICKET_KEY) return env.TICKET_KEY;
+  return await getAdminKey(env);
+}
+
+// [2026-09-14] 已签发设备白名单：KV legal_machines（精确机器码，不是前缀）。
+//   业务语义：用户已签发/认可的设备清单；清单之外在"签发新授权之前"一律视为未授权。
+//   两处兜底保证不会一上线就打挂全网：
+//     1) KV 未配置 / 为空数组 -> 不启用白名单(放行)；
+//     2) 读取异常 -> 放行，避免 KV 抖动导致全员不可用。
+async function isMachineLegal(env, mh) {
+  try {
+    const kv = env && env.STATS;
+    if (!kv) return true;
+    const raw = await kv.get("legal_machines");
+    if (!raw) return true;
+    const list = safeJSON(raw, []);
+    if (!Array.isArray(list) || !list.length) return true;
+    const m = String(mh || "").trim();
+    if (!m) return false;
+    return list.some(x => !!x && String(x).trim() === m);
+  } catch (e) {
+    console.error("[isMachineLegal]", e);
+    return true;
+  }
 }
 
 // v4.0 版本信息
@@ -198,7 +242,7 @@ const ADMIN_HTML = `<!doctype html>
         <strong>在线 / 已激活设备</strong>
         <button class="ghost" onclick="loadAll()">刷新</button>
       </div>
-      <table id="devTable"><thead><tr><th>注册码ID</th><th>机器码</th><th>版本</th><th>首次</th><th>最近活跃</th><th>IP</th><th></th></tr></thead><tbody></tbody></table>
+      <table id="devTable"><thead><tr><th>注册码ID</th><th>机器码</th><th>版本</th><th>首次</th><th>最近活跃</th><th>状态</th><th>IP</th><th></th></tr></thead><tbody></tbody></table>
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid #334155">
         <div class="row" style="justify-content:space-between">
           <strong>封禁名单（机器码前缀 或 ip:地址）</strong>
@@ -278,6 +322,8 @@ let TOKEN=localStorage.getItem('jyt_admin')||'';
 // [登录健壮性] 任何接口 401 -> 清会话并退回登录页(排除 /login 自身, 避免误触发)
 (function(){var _of=window.fetch;window.fetch=async function(u,o){var r=await _of.apply(this,arguments);try{if(r&&r.status===401&&String(u).indexOf('/login')<0){try{localStorage.removeItem('jyt_admin');localStorage.setItem('jyt_relogin','1');}catch(e){}location.reload();}}catch(e){}return r;};})();
 function auth(h={}){return Object.assign({'X-Admin-Token':TOKEN},h);}
+// [会话续期] 每30分钟用当前会话换一张7天新票, 避免后台页开着开着被踢回登录页
+setInterval(async function(){ if(!TOKEN) return; try{ var _r=await fetch(API+'/refresh',{method:'POST',headers:auth()}); if(_r.ok){ var _j=await _r.json(); if(_j&&_j.ok&&_j.token){ TOKEN=_j.token; try{localStorage.setItem('jyt_admin',TOKEN);}catch(e){} } } }catch(e){} }, 1800000);
 async function login(){
   const k=document.getElementById('key').value.trim();
   document.getElementById('lerr').textContent='';
@@ -289,6 +335,15 @@ async function login(){
   }catch(e){document.getElementById('lerr').textContent='请求失败: '+e.message;}
 }
 function logout(){TOKEN='';localStorage.removeItem('jyt_admin');location.reload();}
+// 设备活跃状态标签：<=3天 活跃 / <=14天 近期 / 更久 沉默（纯展示，不影响任何计数）
+function devStatus(d){
+  var n=(d&&d.idle_days!=null)?d.idle_days:-1;
+  if(n<0) return '<span style="color:#94a3b8">未知</span>';
+  var t=n===0?'今天':(n+'天前');
+  if(n<=3) return '<span style="color:#22c55e;font-weight:600">活跃</span> <span style="color:#94a3b8">'+t+'</span>';
+  if(n<=14) return '<span style="color:#eab308">近期</span> <span style="color:#94a3b8">'+t+'</span>';
+  return '<span style="color:#ef4444;font-weight:600">沉默</span> <span style="color:#94a3b8">'+t+'</span>';
+}
 function enter(){document.getElementById('login').classList.add('hidden');document.getElementById('dash').classList.remove('hidden');loadAll();}
 function showTab(t){
   document.getElementById('tdev').classList.toggle('active',t==='dev');
@@ -324,7 +379,7 @@ async function devices(){
     const tb=document.querySelector('#devTable tbody');tb.innerHTML='';
     (j.data||[]).forEach(d=>{
       const tr=document.createElement('tr');
-      tr.innerHTML='<td><code>'+(d.lid||'')+'</code></td><td>'+(d.machine||'').slice(0,12)+'...</td><td>'+(d.tier||'')+'</td><td>'+fmt(d.first_seen)+'</td><td>'+fmt(d.last_seen)+'</td><td>'+(d.ip||'')+'</td><td><button class="danger" onclick="revoke(\\''+(d.lid||'')+'\\')">吊销</button></td>';
+      tr.innerHTML='<td><code>'+(d.lid||'')+'</code></td><td>'+(d.machine||'').slice(0,12)+'...</td><td>'+(d.tier||'')+'</td><td>'+fmt(d.first_seen)+'</td><td>'+fmt(d.last_seen)+'</td><td>'+devStatus(d)+'</td><td>'+(d.ip||'')+'</td><td><button class="danger" onclick="revoke(\\''+(d.lid||'')+'\\')">吊销</button></td>';
       tb.appendChild(tr);
     });
   }catch(e){}
@@ -494,7 +549,7 @@ async function unban(k){
   }catch(e){alert('错误: '+e.message);}
 }
 function fmt(t){if(!t)return'';const d=new Date(t);return d.toLocaleString('zh-CN',{hour12:false});}
-(function(){try{if(localStorage.getItem('jyt_relogin')==='1'){localStorage.removeItem('jyt_relogin');var _e=document.getElementById('lerr');if(_e)_e.textContent='会话已过期，请重新登录';var _k=document.getElementById('key');if(_k)_k.value='';}}catch(e){}})();
+(function(){try{if(localStorage.getItem('jyt_relogin')==='1'){localStorage.removeItem('jyt_relogin');var _e=document.getElementById('lerr');if(_e)_e.textContent='会话已失效，请用 ADMIN_KEY 重新登录（若反复失效，说明服务端密钥被重置过）';var _k=document.getElementById('key');if(_k)_k.value='';}}catch(e){}})();
 if(TOKEN)enter();
 </script>
 </body></html>`;
@@ -511,8 +566,8 @@ function pemToArrayBuffer(pem) {
   return bytes.buffer;
 }
 
-async function importRsaKey() {
-  const keyData = pemToArrayBuffer(RSA_PUB_KEY_PEM);
+async function importRsaKey(pem) {
+  const keyData = pemToArrayBuffer(pem || RSA_PUB_KEY_PEM);
   return await crypto.subtle.importKey(
     'spki', keyData,
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
@@ -521,14 +576,15 @@ async function importRsaKey() {
 }
 
 async function rsaVerify(payloadBytes, sigBytes) {
-  try {
-    const key = await importRsaKey();
-    return await crypto.subtle.verify(
-      'RSASSA-PKCS1-v1_5', key, sigBytes, payloadBytes
-    );
-  } catch (e) {
-    return false;
+  // [2026-09-14] 主钥 -> 备用钥 依次尝试；任一验过即通过。
+  for (const pem of [RSA_PUB_KEY_PEM, RSA_PUB_KEY_PEM_ALT]) {
+    try {
+      if (!pem || String(pem).indexOf('BEGIN PUBLIC KEY') < 0) continue;
+      const key = await importRsaKey(pem);
+      if (await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, sigBytes, payloadBytes)) return true;
+    } catch (e) { /* 换下一把 */ }
   }
+  return false;
 }
 
 function b64decode(str) {
@@ -956,8 +1012,12 @@ async function killBuildHit(env, machineCode, verStr) {
   } catch (e) { return ""; }
 }
 // ========== 自动封禁 ==========
-// 只针对"伪造/无效授权"类失败；expired / not_longterm / machine_mismatch 等正常商业状态一律不计。
-const _AB_REASONS = ["invalid_token", "signature_invalid", "invalid_payload"];
+// 只针对"伪造授权"类失败；expired / not_longterm / machine_mismatch 等正常商业状态一律不计。
+// [2026-09-14 修复] invalid_token 已从自动封禁名单移除：
+//   票据失效的成因包括服务端密钥轮换、客户端缓存旧票、时间漂移，属运维事件而非攻击。
+//   事故回溯：9/14 08:58 Secret Change 后票据集体失效 -> 客户云主机累计 40 次 invalid_token
+//   -> 被自动永久封禁(fail_invalid_tokenx40) -> banned 前置拦截导致连 /api/ticket 也进不去，无法自愈。
+const _AB_REASONS = ["signature_invalid", "invalid_payload"];
 // 由 logAudit 统一驱动：result==="ok" 清零；命中 _AB_REASONS 才累计。
 async function autoBanTick(env, entry) {
   try {
@@ -1173,6 +1233,11 @@ export default {
         const body = await request.json();
         const licenseKey = body.license || "";
         const machineCode = body.machine_code || "";
+        // [白名单闸门] 不在已签发设备清单内 -> 未授权（签发新机器前一律拒绝）
+        if (!(await isMachineLegal(env, machineCode))) {
+          _log("", machineCode, "fail", "not_authorized");
+          return jsonResp({ ok: false, error: "not_authorized", msg: "该设备未在授权清单内，请联系客服(www.jyt.cc.cd)" }, 403);
+        }
 
         // [封禁闸门: 最高优先级] 命中 banned_machines -> 直接拒绝(客户端会锁定并退出)
         if (await isBanned(env, machineCode, _ip)) {
@@ -1471,6 +1536,11 @@ export default {
         const body = await request.json();
         const licenseKey = body.license || "";
         const machineCode = body.machine_code || "";
+        // [白名单闸门] 不在已签发设备清单内 -> 未授权（签发新机器前一律拒绝）
+        if (!(await isMachineLegal(env, machineCode))) {
+          _log("", machineCode, "fail", "not_authorized");
+          return jsonResp({ ok: false, error: "not_authorized", msg: "该设备未在授权清单内，请联系客服(www.jyt.cc.cd)" }, 403);
+        }
 
         // [封禁闸门] 命中 banned_machines -> 直接拒绝
         if (await isBanned(env, machineCode, _ip)) {
@@ -1582,7 +1652,7 @@ export default {
         // 颁发 24 小时能力票据(HMAC, 密钥=adminKey, 与令牌同源)
         const tier = payload.tier || payload.version || "trial";
         const tktPayload = { lid, tier, mh: machineCode, iat: now, exp: now + 86400, cap: 1 };
-        const ticket = await generateToken(tktPayload, adminKey);
+        const ticket = await generateToken(tktPayload, await getTicketKey(env));
 
         // P0-2 补全: 与 /api/verify 同源下发 RSA 签名的时间锚票据(客户端用内置 _RSA_PUB_TT 验签)。
         let timeTicket = "";
@@ -1657,7 +1727,7 @@ export default {
           }
         }
 
-        const payload = await verifyToken(token, adminKey);
+        const payload = await verifyToken(token, await getTicketKey(env));
         if (!payload) {
           _log("", machineCode, "fail", "invalid_token");
           return jsonResp({ ok: false, error: "invalid token" }, 403);
@@ -2068,7 +2138,7 @@ export default {
       const ak = await getAdminKey(env);
       if (key && ak && key === ak) {
         const token = await generateToken(
-          { admin: true, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 7200 },
+          { admin: true, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 604800 },
           ak
         );
         return jsonResp({ ok: true, token });
@@ -2080,6 +2150,18 @@ export default {
     if (path.startsWith("/api/admin/")) {
       const authed = await isAdmin(request, env);
       if (!authed) return jsonResp({ ok: false, error: "unauthorized" }, 401);
+
+      // ---------- 会话续期：有效凭据换发一张 7 天新票（前端每 30 分钟静默调用） ----------
+      // 说明：服务端 verifyToken 只验签、不校验 exp，因此"登录过期"几乎都源于密钥被重置
+      // 或浏览器端 token 丢失；此接口让长期打开的后台页自动续期，不再中途掉线。
+      if (path === "/api/admin/refresh" && request.method === "POST") {
+        const ak2 = await getAdminKey(env);
+        const nt = await generateToken(
+          { admin: true, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 604800 },
+          ak2
+        );
+        return jsonResp({ ok: true, token: nt, exp: 604800 });
+      }
 
       // 封禁名单：查看
       if (path === "/api/admin/banned") {
@@ -2175,7 +2257,17 @@ export default {
           // 过滤空串/空值, 避免空串 startsWith("") 恒真把设备页全部隐藏
           list = list.filter(d => !ign.some(x => !!x && String(d.machine || "").startsWith(x)));
         } catch {}
-        return jsonResp({ ok: true, data: list });
+        // [2026-09-14 回滚] 这里曾按 machine 归并去重，把同一机器码的多条授权合并成一台。
+        // 业务实际是"一机一码、一条授权 = 一台收费电脑"，合并会导致设备数少算、影响计费。
+        // 已恢复全量返回（条数即设备的电脑数），不再做任何归并。
+        // [活跃/沉默标识] 只附加字段、不改变条数与任何计数字段。
+        const _now = Date.now();
+        list.forEach(d => {
+          const ls = +(d.last_seen || 0);
+          d.idle_days = ls ? Math.floor((_now - ls) / 86400000) : -1;
+          d.status = d.idle_days < 0 ? "unknown" : (d.idle_days <= 3 ? "active" : (d.idle_days <= 14 ? "recent" : "idle"));
+        });
+        return jsonResp({ ok: true, data: list, device_count: list.length, raw_count: list.length });
       }
 
       // 老客户白名单导出(长期/年费授权自动登记; 供复核/备份, 防误扫稳定付费客户)

@@ -15,3 +15,14 @@ id = "3c284ff71077458fa15188a2c23034b9"
 [[routes]]
 pattern = "www.jyt.cc.cd/api/*"
 zone_name = "jyt.cc.cd"
+
+[[routes]]
+pattern = "www.jyt.cc.cd/60627da6ede98243d045634efe4bbaf7.txt"
+zone_name = "jyt.cc.cd"
+
+# [2026-09-13] 裸域名 jyt.cc.cd 以"Worker 自定义域名"方式接入:
+#   Cloudflare 会自动创建 @ 的 DNS 记录(代理)并签发证书, 无需手写 DNS;
+#   Worker 内对裸域名做 301 -> www(验证 TXT 除外, 保持 200 直出, 供腾讯校验)。
+[[routes]]
+pattern = "jyt.cc.cd"
+custom_domain = true
