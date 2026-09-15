@@ -1,5 +1,5 @@
 # 智能交易系统 下载包校验值
-# 生成时间 2026-09-15 21:56:12
+# 生成时间 2026-09-15 22:40:39
 # 校验方式：Windows 终端执行  certutil -hashfile "文件名" SHA256
 
 智能交易系统_标准版.zip
@@ -9,3 +9,4 @@ SHA256: a7821628938b4b9ae9773ee1012448d1ce0c62fcc705ab2efda7f35fab09a109
 智能交易系统_专业版.zip
 SHA256: b646665bec07a9272f253be2f5b50079d3ce0e1e2a2f8ada0d7f2604cd3da3f3
 大小  : 30.0 MB (exe 约 30.9 MB)
+
