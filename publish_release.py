@@ -28,19 +28,32 @@ import datetime
 def _setup_console():
     enc = None
     if os.name == 'nt':
-        try:
-            import ctypes
-            cp = ctypes.windll.kernel32.GetConsoleOutputCP()
-            # 936 = 简体中文 GBK 控制台；其余（含被重定向/无控制台的 0）按 UTF-8 处理
-            enc = 'gbk' if cp == 936 else 'utf-8'
-        except Exception:
-            enc = 'gbk'
+        # 1) 显式环境变量优先（一键发布.bat 里钉死为 gbk）
+        env_enc = (os.environ.get('PYTHONIOENCODING') or '').strip()
+        if env_enc:
+            enc = env_enc
+        else:
+            # 2) 按控制台代码页判定；0=无控制台(重定向)也按 gbk，避免 UTF-8 字节落进 GBK 窗口
+            try:
+                import ctypes
+                cp = ctypes.windll.kernel32.GetConsoleOutputCP()
+                enc = 'gbk' if cp in (0, 936, 54936) else 'utf-8'
+            except Exception:
+                enc = 'gbk'
     if enc:
         try:
             sys.stdout.reconfigure(encoding=enc, errors='replace')
             sys.stderr.reconfigure(encoding=enc, errors='replace')
         except Exception:
-            pass
+            # reconfigure 不可用时，直接重建一层编码包装，不要静默放弃（否则必乱码）
+            try:
+                import io
+                sys.stdout = io.TextIOWrapper(
+                    sys.stdout.buffer, encoding=enc, errors='replace')
+                sys.stderr = io.TextIOWrapper(
+                    sys.stderr.buffer, encoding=enc, errors='replace')
+            except Exception:
+                pass
 
 _setup_console()
 
@@ -383,12 +396,22 @@ def main():
         hr('完成（已提交，按参数未推送）')
         return 0
     log('\n[3/3] 推送 ...')
-    try:
-        _, out = git(gitcmd, ['push', 'origin', 'HEAD'], timeout=600)
-        if out:
-            log(out)
-    except RuntimeError as e:
-        log('[错误] 推送失败: ' + str(e))
+    last_err = None
+    for attempt in range(1, 4):
+        try:
+            _, out = git(gitcmd, ['push', 'origin', 'HEAD'], timeout=600)
+            if out:
+                log(out)
+            last_err = None
+            break
+        except RuntimeError as e:
+            last_err = str(e)
+            if attempt < 3:
+                wait = 8 * attempt
+                log('  第 %d 次推送失败，%d 秒后重试 ...' % (attempt, wait))
+                time.sleep(wait)
+    if last_err:
+        log('[错误] 推送失败（已重试 3 次）: ' + last_err)
         log('  处理办法：打开 GitHub Desktop 点 Push origin，或检查网络/登录态。')
         return 1
     hr('发布完成，Pages 约 1-3 分钟后生效：www.jyt.cc.cd')

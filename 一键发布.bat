@@ -2,6 +2,7 @@
 setlocal
 set "PATH=C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem;%PATH%"
 cd /d "%~dp0"
+set "PYTHONIOENCODING=gbk"
 
 set "PY=C:\Users\jk\AppData\Local\Programs\Python\Python311\python.exe"
 if not exist "%PY%" goto trypy2
