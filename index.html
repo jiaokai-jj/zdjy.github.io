@@ -452,7 +452,7 @@
                     </div>
 <div class="pricing-card reveal reveal-delay-1">
 <h3>标准版</h3>
-                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥588</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
+                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥888</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
                         <p style="color:var(--text-secondary);font-size:0.75rem">专业级功能，无限制交易</p>
                         <ul class="pricing-features">
                             <li>每日选股无限制</li><li>资金无上限</li><li>高级风险控制</li><li>🛡 1个月无理由退款</li>
@@ -461,7 +461,7 @@
                     </div>
 <div class="pricing-card recommended reveal reveal-delay-2">
 <span class="pricing-badge">🌟 推荐</span><h3>专业版</h3>
-                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥1088</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
+                        <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥1888</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
                         <p style="color:var(--text-secondary);font-size:0.75rem">无限交易 + 条件单</p>
                         <ul class="pricing-features">
                             <li>含体验/标准所有功能</li><li>条件单模块</li><li>智能止盈止损</li>                        <li>🛡 1个月无理由退款</li>
@@ -489,14 +489,14 @@
                                 <div class="dl-card dl-stable">
                                     <div class="dl-card-head"><span class="dl-name">✅ 标准版</span><span class="dl-badge">稳定推荐</span></div>
                                     <p class="dl-desc">v5.0.1 标准版，核心交易全功能，适合日常实盘使用。</p>
-                                    <p style="margin:6px 0 10px;font-size:.66rem;color:var(--text-secondary);word-break:break-all">&#128274; SHA256 <code id="sha-standard" style="color:#7aa8ff">a7821628938b4b9ae9773ee1012448d1ce0c62fcc705ab2efda7f35fab09a109</code></p>
-                                    <a href="#" class="btn btn-primary" onclick="handleDownload('standard');return false">下载标准版 (约29MB)</a>
+                                    <p style="margin:6px 0 10px;font-size:.66rem;color:var(--text-secondary);word-break:break-all">&#128274; SHA256 <code id="sha-standard" style="color:#7aa8ff">ed22ac30dd89afbccd2746e26f5fa6a1eeb11a5d87be70471f127d53f9e392e2</code></p>
+                                    <a href="#" class="btn btn-primary" onclick="handleDownload('standard');return false">下载标准版 (约28MB)</a>
                                 </div>
                                 <div class="dl-card dl-beta">
                                     <div class="dl-card-head"><span class="dl-name">🚀 专业版</span><span class="dl-badge">功能更强</span></div>
                                     <p class="dl-desc">v5.0.1 专业版，含风控与条件单，适合进阶用户。</p>
-                                    <p style="margin:6px 0 10px;font-size:.66rem;color:var(--text-secondary);word-break:break-all">&#128274; SHA256 <code id="sha-pro" style="color:#7aa8ff">b646665bec07a9272f253be2f5b50079d3ce0e1e2a2f8ada0d7f2604cd3da3f3</code></p>
-                                    <a href="#" class="btn btn-outline" onclick="handleDownload('pro');return false">下载专业版 (约30MB)</a>
+                                    <p style="margin:6px 0 10px;font-size:.66rem;color:var(--text-secondary);word-break:break-all">&#128274; SHA256 <code id="sha-pro" style="color:#7aa8ff">708448ce399cc98c59c6ae8d26463d4c3b103c31f64ff98a7f799177a08b3e28</code></p>
+                                    <a href="#" class="btn btn-outline" onclick="handleDownload('pro');return false">下载专业版 (约29MB)</a>
                                 </div>
                             </div>
                             <p style="margin-top:12px;font-size:.82rem;color:var(--text-secondary)">📥 累计下载 <span class="js-dl">--</span> 次 · 标准版 / 专业版 激活与购买流程一致</p>
@@ -868,7 +868,7 @@ var chatWindow=document.getElementById("chatWindow"),chatMessages=document.getEl
 function toggleChat(){chatOpen=!chatOpen;chatWindow.classList.toggle("open",chatOpen);if(chatOpen)setTimeout(function(){chatInput.focus()},300)}
 function sendMessage(){var text=chatInput.value.trim();if(!text)return;addBubble(text,"user");chatInput.value="";setTimeout(function(){addBubble(getReply(text),"bot")},500)}
 function addBubble(msg,type){var d=document.createElement("div");d.className="chat-bubble "+type;d.textContent=msg;chatMessages.appendChild(d);chatMessages.scrollTop=chatMessages.scrollHeight}
-function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥588/年，专业版(推荐)¥1088/年。均为年度订阅，支持1个月无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助申请7天免费试用高级版（全功能），或添加客服QQ 290144665 由客服发放正式激活码。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
+function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥888/年，专业版(推荐)¥1888/年。均为年度订阅，支持1个月无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助申请7天免费试用高级版（全功能），或添加客服QQ 290144665 由客服发放正式激活码。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
 function handleDownload(variant){var file,name;if(variant==='standard'){file='downloads/智能交易系统_标准版.zip';name='智能交易系统_标准版.zip'}else if(variant==='pro'){file='downloads/智能交易系统_专业版.zip';name='智能交易系统_专业版.zip'}else{file='downloads/智能交易系统_标准版.zip';name='智能交易系统_标准版.zip'}fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download",variant:variant,agent:getAgent()})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href=file;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){var href=this.getAttribute("href");if(href==="#")return;var target=document.querySelector(href);if(target){e.preventDefault();var offset=window.innerWidth<=900?65:18;window.scrollTo({top:target.offsetTop-offset,behavior:"smooth"})}})});
 var catArea=document.getElementById("catArea"),catContainer=document.getElementById("catContainer");
