@@ -455,7 +455,7 @@
                         <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥888</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
                         <p style="color:var(--text-secondary);font-size:0.75rem">专业级功能，无限制交易</p>
                         <ul class="pricing-features">
-                            <li>每日选股无限制</li><li>资金无上限</li><li>高级风险控制</li><li>🛡 1个月无理由退款</li>
+                            <li>每日选股无限制</li><li>资金无上限</li><li>高级风险控制</li><li>虚拟产品 · 一经售出概不退款</li>
                         </ul>
                         <a href="#activate" class="btn btn-gold" onclick="document.getElementById('actTier').value='standard';">立即选用</a>
                     </div>
@@ -464,7 +464,7 @@
                         <div class="pricing-price"><span class="gradient-text" style="font-weight:800">¥1888</span><span style="color:var(--text-secondary);font-size:0.9rem">/年</span></div>
                         <p style="color:var(--text-secondary);font-size:0.75rem">无限交易 + 条件单</p>
                         <ul class="pricing-features">
-                            <li>含体验/标准所有功能</li><li>条件单模块</li><li>智能止盈止损</li>                        <li>🛡 1个月无理由退款</li>
+                            <li>含体验/标准所有功能</li><li>条件单模块</li><li>智能止盈止损</li>                        <li>虚拟产品 · 一经售出概不退款</li>
                         </ul>
                         <a href="#activate" class="btn btn-gold" onclick="document.getElementById('actTier').value='premium';">立即选用</a>
                     </div>
@@ -868,7 +868,7 @@ var chatWindow=document.getElementById("chatWindow"),chatMessages=document.getEl
 function toggleChat(){chatOpen=!chatOpen;chatWindow.classList.toggle("open",chatOpen);if(chatOpen)setTimeout(function(){chatInput.focus()},300)}
 function sendMessage(){var text=chatInput.value.trim();if(!text)return;addBubble(text,"user");chatInput.value="";setTimeout(function(){addBubble(getReply(text),"bot")},500)}
 function addBubble(msg,type){var d=document.createElement("div");d.className="chat-bubble "+type;d.textContent=msg;chatMessages.appendChild(d);chatMessages.scrollTop=chatMessages.scrollHeight}
-function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥888/年，专业版(推荐)¥1888/年。均为年度订阅，支持1个月无理由退款。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助申请7天免费试用高级版（全功能），或添加客服QQ 290144665 由客服发放正式激活码。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
+function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥888/年，专业版(推荐)¥1888/年。均为年度订阅。软件为虚拟产品，一经售出概不退款，建议先申请 7 天免费试用。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助申请7天免费试用高级版（全功能），或添加客服QQ 290144665 由客服发放正式激活码。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
 function handleDownload(variant){var file,name;if(variant==='standard'){file='downloads/智能交易系统_标准版.zip';name='智能交易系统_标准版.zip'}else if(variant==='pro'){file='downloads/智能交易系统_专业版.zip';name='智能交易系统_专业版.zip'}else{file='downloads/智能交易系统_标准版.zip';name='智能交易系统_标准版.zip'}fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download",variant:variant,agent:getAgent()})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href=file;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){var href=this.getAttribute("href");if(href==="#")return;var target=document.querySelector(href);if(target){e.preventDefault();var offset=window.innerWidth<=900?65:18;window.scrollTo({top:target.offsetTop-offset,behavior:"smooth"})}})});
 var catArea=document.getElementById("catArea"),catContainer=document.getElementById("catContainer");
