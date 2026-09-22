@@ -86,7 +86,27 @@
         .sidebar-nav a.active .nav-icon-svg{opacity:1}
         .nav-icon-svg svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
         .sidebar-footer{padding:14px 20px;font-size:0.7rem;color:var(--text-secondary);flex-shrink:0;text-align:center}
-        .sidebar-spacer{flex:1;min-height:0}
+        .cat-area{position:relative;width:100%;flex:1;min-height:0;cursor:crosshair;user-select:none;overflow:hidden}
+.cat-container{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;transition:left 0.55s cubic-bezier(0.25,0.1,0.25,1.2),top 0.55s cubic-bezier(0.25,0.1,0.25,1.2);z-index:10}
+.cat-body{position:relative;width:120px;height:120px}
+.cat-face{width:84px;height:70px;background:#f5e6d3;border-radius:50% 50% 45% 45%;position:absolute;top:20px;left:18px;box-shadow:0 6px 20px rgba(0,0,0,0.35)}
+.cat-ear{width:26px;height:26px;background:#f5e6d3;border-radius:50% 50% 20% 20%;position:absolute;top:-7px}
+.cat-ear.left{left:7px;transform:rotate(-10deg)}.cat-ear.right{right:7px;transform:rotate(10deg)}
+.cat-ear::after{content:"";width:14px;height:14px;background:#f0c4a0;border-radius:50%;position:absolute;top:5px;left:6px}
+.cat-eye{width:10px;height:11px;background:#1a1a1a;border-radius:50%;position:absolute;top:24px;animation:catBlink 3s infinite}
+.cat-eye.left{left:22px}.cat-eye.right{right:22px}
+@keyframes catBlink{0%,95%,100%{transform:scaleY(1)}97%{transform:scaleY(0.1)}}
+.cat-nose{width:9px;height:5px;background:#e8917e;border-radius:50%;position:absolute;top:36px;left:50%;transform:translateX(-50%)}
+.cat-mouth{width:18px;height:7px;border-bottom:2.5px solid #c47a6a;border-radius:0 0 50% 50%;position:absolute;top:41px;left:50%;transform:translateX(-50%)}
+.cat-collar{width:52px;height:11px;background:linear-gradient(180deg,#e8574a,#c93a2e);border-radius:6px;position:absolute;top:60px;left:50%;transform:translateX(-50%);box-shadow:0 2px 6px rgba(0,0,0,0.3)}
+.cat-bell{width:15px;height:15px;background:radial-gradient(circle at 35% 30%,#ffe89a,#f0b429);border-radius:50%;position:absolute;top:68px;left:50%;transform:translateX(-50%);box-shadow:0 2px 6px rgba(0,0,0,0.35)}
+.cat-bell::after{content:"";width:11px;height:1.5px;background:rgba(0,0,0,0.28);border-radius:1px;position:absolute;top:6px;left:2px}
+.cat-paw{width:18px;height:20px;background:#f5e6d3;border-radius:50%;position:absolute;bottom:-10px;animation:catWave 1.2s ease-in-out infinite;box-shadow:0 3px 8px rgba(0,0,0,0.25)}
+.cat-paw.left{left:20px;animation-delay:0s}.cat-paw.right{right:20px;animation-delay:0.6s}
+@keyframes catWave{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.cat-bubble{position:absolute;top:-30px;left:50%;transform:translateX(-50%);font-size:13px;color:#10b981;white-space:nowrap;background:rgba(0,0,0,0.7);padding:3px 9px;border-radius:10px;animation:catBubbleFloat 2s ease-in-out infinite}
+@keyframes catBubbleFloat{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-6px)}}
+@media (prefers-reduced-motion:reduce){.cat-eye,.cat-paw,.cat-bubble{animation:none}}
                                                                                                                                         .mobile-header{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:rgba(16,32,58,0.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border-subtle);z-index:99;align-items:center;justify-content:space-between;padding:0 16px}
         .mobile-logo{width:34px;height:34px;border-radius:7px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;overflow:hidden;padding:3px}.mobile-logo img{width:100%;height:100%;object-fit:contain}
         .hamburger{width:40px;height:40px;background:none;border:none;display:flex;flex-direction:column;justify-content:center;gap:5px;cursor:pointer;padding:8px}
@@ -269,7 +289,20 @@
                 <div class="sidebar-logo"><img src="app_icon.ico" alt="logo"></div>
                 <span class="sidebar-brand-name">睿欣科技</span>
             </div>
-            <div class="sidebar-spacer" aria-hidden="true"></div>
+                        <div class="cat-area" id="catArea">
+                <div class="cat-container" id="catContainer">
+                    <div class="cat-body">
+                        <div class="cat-face">
+                            <div class="cat-ear left"></div><div class="cat-ear right"></div>
+                            <div class="cat-eye left"></div><div class="cat-eye right"></div>
+                            <div class="cat-nose"></div><div class="cat-mouth"></div>
+                            <div class="cat-collar"></div><div class="cat-bell"></div>
+                        </div>
+                        <div class="cat-paw left"></div><div class="cat-paw right"></div>
+                        <div class="cat-bubble">📈 喵~ +2.8%</div>
+                    </div>
+                </div>
+            </div>
             <ul class="sidebar-nav">
                 <li><a href="#hero" class="active"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span> 首页</a></li>
                 <li><a href="#features"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> 核心功能</a></li>
@@ -832,6 +865,9 @@ var hamburger=document.getElementById("hamburger"),mobileNav=document.getElement
 hamburger.addEventListener("click",function(){mobileOpen=!mobileOpen;mobileNav.style.display=mobileOpen?"flex":"none"});
 document.querySelectorAll("#mobileNavOverlay a").forEach(function(a){a.addEventListener("click",function(){mobileOpen=false;mobileNav.style.display="none"})});
 var navLinks=document.querySelectorAll(".sidebar-nav a");
+var catArea=document.getElementById("catArea"),catContainer=document.getElementById("catContainer");
+if(catArea&&catContainer){catArea.addEventListener("click",function(e){var rect=catArea.getBoundingClientRect();var x2=e.clientX-rect.left,y2=e.clientY-rect.top;var cw=120,ch=120;var cx2=Math.min(Math.max(x2,cw/2),rect.width-cw/2),cy2=Math.min(Math.max(y2,ch/2),rect.height-ch/2);catContainer.style.left=cx2+"px";catContainer.style.top=cy2+"px";catContainer.style.transform="translate(-50%,-50%)"})}
+
 var sections=document.querySelectorAll("section[id]");
 window.addEventListener("scroll",function(){var sy=window.scrollY+100;sections.forEach(function(s){var top=s.offsetTop,bot=top+s.offsetHeight;if(sy>=top&&sy<bot){navLinks.forEach(function(a){a.classList.remove("active");if(a.getAttribute("href")==="#"+s.id)a.classList.add("active")})}})});
 function openVideoModal(src){var m=document.getElementById("videoModal"),v=document.getElementById("modalVideo");v.src=src;m.classList.add("show");v.play()}
