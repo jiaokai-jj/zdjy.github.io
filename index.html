@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <link rel="icon" href="app_icon.ico">
     <title>睿欣科技 | 短线智能交易系统 v5.0.1</title>
     <!-- 性能修复: 移除 Google Fonts(国内被墙/极慢, 会卡白屏)。改用系统字体栈, 中文用苹方/微软雅黑。 -->
     <style>
@@ -34,7 +35,7 @@
             --font-mono: "SF Mono","Consolas","Menlo","Monaco",monospace;
         }
         *{margin:0;padding:0;box-sizing:border-box}
-        html{scroll-behavior:smooth;font-size:16px;height:100%}
+        html{scroll-behavior:smooth;font-size:16px;height:100%;background:#0d1b35;overscroll-behavior:none}
         body{
             font-family:var(--font-sans);
             background:linear-gradient(175deg,#0d1b35 0%,#132848 25%,#1a3458 50%,#132848 75%,#0d1b35 100%);
@@ -60,6 +61,7 @@
         .reveal{opacity:0;transform:translateY(30px);transition:opacity 0.8s cubic-bezier(0.16,1,0.3,1),transform 0.8s cubic-bezier(0.16,1,0.3,1)}
         .reveal.visible{opacity:1;transform:translateY(0)}
         .reveal-delay-1{transition-delay:0.1s}.reveal-delay-2{transition-delay:0.2s}.reveal-delay-3{transition-delay:0.3s}.reveal-delay-4{transition-delay:0.4s}
+        @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
         .gradient-text{background:linear-gradient(135deg,#68a8ff,#90b0ff,#b0c0ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:900}
         .gradient-text-cyan{background:linear-gradient(135deg,#58e0ff,#78b0ff,#98b8ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:900}
         .gradient-text-gold{background:linear-gradient(135deg,#ffe878,#e0c068,#c8a050);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:900}
@@ -84,24 +86,8 @@
         .sidebar-nav a.active .nav-icon-svg{opacity:1}
         .nav-icon-svg svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
         .sidebar-footer{padding:14px 20px;font-size:0.7rem;color:var(--text-secondary);flex-shrink:0;text-align:center}
-        .cat-area{position:relative;width:100%;flex:1;min-height:0;cursor:crosshair;user-select:none;overflow:hidden}
-        .cat-container{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;transition:left 0.55s cubic-bezier(0.25,0.1,0.25,1.2),top 0.55s cubic-bezier(0.25,0.1,0.25,1.2);z-index:10}
-        .cat-body{position:relative;width:120px;height:120px}
-        .cat-face{width:84px;height:70px;background:#f5e6d3;border-radius:50% 50% 45% 45%;position:absolute;top:20px;left:18px;box-shadow:0 6px 20px rgba(0,0,0,0.35)}
-        .cat-ear{width:26px;height:26px;background:#f5e6d3;border-radius:50% 50% 20% 20%;position:absolute;top:-7px}
-        .cat-ear.left{left:7px;transform:rotate(-10deg)}.cat-ear.right{right:7px;transform:rotate(10deg)}
-        .cat-ear::after{content:"";width:14px;height:14px;background:#f0c4a0;border-radius:50%;position:absolute;top:5px;left:6px}
-        .cat-eye{width:10px;height:11px;background:#1a1a1a;border-radius:50%;position:absolute;top:24px;animation:catBlink 3s infinite}
-        .cat-eye.left{left:22px}.cat-eye.right{right:22px}
-        @keyframes catBlink{0%,95%,100%{transform:scaleY(1)}97%{transform:scaleY(0.1)}}
-        .cat-nose{width:9px;height:5px;background:#e8917e;border-radius:50%;position:absolute;top:36px;left:50%;transform:translateX(-50%)}
-        .cat-mouth{width:18px;height:7px;border-bottom:2.5px solid #c47a6a;border-radius:0 0 50% 50%;position:absolute;top:41px;left:50%;transform:translateX(-50%)}
-        .cat-paw{width:18px;height:20px;background:#f5e6d3;border-radius:50%;position:absolute;bottom:-10px;animation:catWave 1.2s ease-in-out infinite;box-shadow:0 3px 8px rgba(0,0,0,0.25)}
-        .cat-paw.left{left:20px;animation-delay:0s}.cat-paw.right{right:20px;animation-delay:0.6s}
-        @keyframes catWave{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
-        .cat-bubble{position:absolute;top:-18px;right:-190px;font-size:13px;color:#10b981;white-space:nowrap;background:rgba(0,0,0,0.7);padding:3px 9px;border-radius:10px;animation:catBubbleFloat 2s ease-in-out infinite}
-        @keyframes catBubbleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-        .mobile-header{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:rgba(16,32,58,0.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border-subtle);z-index:99;align-items:center;justify-content:space-between;padding:0 16px}
+        .sidebar-spacer{flex:1;min-height:0}
+                                                                                                                                        .mobile-header{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:rgba(16,32,58,0.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--border-subtle);z-index:99;align-items:center;justify-content:space-between;padding:0 16px}
         .mobile-logo{width:34px;height:34px;border-radius:7px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;overflow:hidden;padding:3px}.mobile-logo img{width:100%;height:100%;object-fit:contain}
         .hamburger{width:40px;height:40px;background:none;border:none;display:flex;flex-direction:column;justify-content:center;gap:5px;cursor:pointer;padding:8px}
         .hamburger span{display:block;width:22px;height:2px;background:#c0d0e0;border-radius:1px;transition:all 0.3s}
@@ -283,19 +269,7 @@
                 <div class="sidebar-logo"><img src="app_icon.ico" alt="logo"></div>
                 <span class="sidebar-brand-name">睿欣科技</span>
             </div>
-            <div class="cat-area" id="catArea">
-                <div class="cat-container" id="catContainer">
-                    <div class="cat-body">
-                        <div class="cat-face">
-                            <div class="cat-ear left"></div><div class="cat-ear right"></div>
-                            <div class="cat-eye left"></div><div class="cat-eye right"></div>
-                            <div class="cat-nose"></div><div class="cat-mouth"></div>
-                        </div>
-                        <div class="cat-paw left"></div><div class="cat-paw right"></div>
-                        <div class="cat-bubble">📈 喵~ +2.8%</div>
-                    </div>
-                </div>
-            </div>
+            <div class="sidebar-spacer" aria-hidden="true"></div>
             <ul class="sidebar-nav">
                 <li><a href="#hero" class="active"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span> 首页</a></li>
                 <li><a href="#features"><span class="nav-icon-svg"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> 核心功能</a></li>
@@ -448,7 +422,7 @@
                         <ul class="pricing-features">
                             <li>每日买入10次·单次≤1000股</li><li>资金限额管理</li>                        <li>基础风险控制</li>
                         </ul>
-                        <a href="#activate" class="btn btn-outline" onclick="document.getElementById('actTier').value='basic';">立即购买</a>
+                        <a href="#activate" class="btn btn-outline">立即购买</a>
                     </div>
 <div class="pricing-card reveal reveal-delay-1">
 <h3>标准版</h3>
@@ -457,7 +431,7 @@
                         <ul class="pricing-features">
                             <li>每日选股无限制</li><li>资金无上限</li><li>高级风险控制</li><li>虚拟产品 · 一经售出概不退款</li>
                         </ul>
-                        <a href="#activate" class="btn btn-gold" onclick="document.getElementById('actTier').value='standard';">立即选用</a>
+                        <a href="#activate" class="btn btn-gold">立即选用</a>
                     </div>
 <div class="pricing-card recommended reveal reveal-delay-2">
 <span class="pricing-badge">🌟 推荐</span><h3>专业版</h3>
@@ -466,7 +440,7 @@
                         <ul class="pricing-features">
                             <li>含体验/标准所有功能</li><li>条件单模块</li><li>智能止盈止损</li>                        <li>虚拟产品 · 一经售出概不退款</li>
                         </ul>
-                        <a href="#activate" class="btn btn-gold" onclick="document.getElementById('actTier').value='premium';">立即选用</a>
+                        <a href="#activate" class="btn btn-gold">立即选用</a>
                     </div>
                 </div>
             </section>
@@ -723,7 +697,7 @@ document.addEventListener("touchstart",function(e){if(e.touches.length){drag=1;o
 document.addEventListener("mouseup",function(){drag=0});
 document.addEventListener("touchend",function(){drag=0});
 var ns=[],gs=[],ls=[];
-var NC=Math.floor(w*h/3500);
+var NC=Math.min(350,Math.floor(w*h/3500));
 function ip(){
     ns=[];gs=[];ls=[];
     for(var i=0;i<NC;i++){
@@ -741,6 +715,7 @@ function ip(){
 }
 ip();
 function dr(){
+    if(document.hidden){requestAnimationFrame(dr);return}
     t+=0.012;mx+=(tx-mx)*0.03;my+=(ty-my)*0.03;
     if(drag){var dd=Math.sqrt((dx-ox)*(dx-ox)+(dy-oy)*(dy-oy));ts=Math.min(dd/Math.min(w,h)*0.8,0.7);ta=Math.atan2(dy-oy,dx-ox)}else ts=0;
     sf+=(ts-sf)*0.08;sa+=(ta-sa)*0.12;
@@ -850,7 +825,7 @@ window.addEventListener("resize",function(){rs();ip()});
 var scrollProgress=document.getElementById("scrollProgress");
 window.addEventListener("scroll",function(){var pct=window.scrollY/(document.documentElement.scrollHeight-window.innerHeight)*100;scrollProgress.style.width=pct+"%"});
 (function(){var API="https://www.jyt.cc.cd";function setAll(cls,val){var v=(val==null?"0":String(val));document.querySelectorAll(cls).forEach(function(el){el.textContent=v})}fetch(API+"/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"visit"})}).catch(function(){});fetch(API+"/api/stats").then(function(r){return r.json()}).then(function(d){setAll(".js-pv",d&&d.visits!=null?d.visits:0);setAll(".js-dl",d&&d.downloads!=null?d.downloads:0)}).catch(function(){setAll(".js-pv",0);setAll(".js-dl",0)})})();var reveals=document.querySelectorAll(".reveal");
-var observer=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add("visible")})},{threshold:0.12});
+var observer=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add("visible")})},{threshold:0.08,rootMargin:"15% 0px 15% 0px"});
 reveals.forEach(function(el){observer.observe(el)});
 (function(){var API="/api/index";function setIdx(idVal,idChg,val,chg){var v=document.getElementById(idVal),c=document.getElementById(idChg);if(!v||!c)return;if(val==null){v.textContent="--";c.textContent="--";return}v.textContent=val.toFixed(2);var up=chg>=0;c.textContent=(up?"+":"")+chg.toFixed(2)+"%";c.className="index-change "+(up?"up":"down")}function refresh(){fetch(API,{headers:{"Accept":"application/json"}}).then(function(r){return r.json()}).then(function(d){if(!d||!d.ok||!d.indices)return;var I=d.indices;setIdx("szIndex","szChange",I.sz&&I.sz.value,I.sz&&I.sz.change);setIdx("scIndex","scChange",I.sc&&I.sc.value,I.sc&&I.sc.change);setIdx("cyIndex","cyChange",I.cy&&I.cy.value,I.cy&&I.cy.change);setIdx("kcIndex","kcChange",I.kc&&I.kc.value,I.kc&&I.kc.change)}).catch(function(){})}refresh();setInterval(refresh,20000)})();
 var hamburger=document.getElementById("hamburger"),mobileNav=document.getElementById("mobileNavOverlay"),mobileOpen=false;
@@ -871,8 +846,6 @@ function addBubble(msg,type){var d=document.createElement("div");d.className="ch
 function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥888/年，专业版(推荐)¥1888/年。均为年度订阅。软件为虚拟产品，一经售出概不退款，建议先申请 7 天免费试用。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助申请7天免费试用高级版（全功能），或添加客服QQ 290144665 由客服发放正式激活码。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
 function handleDownload(variant){var file,name;if(variant==='standard'){file='downloads/智能交易系统_标准版.zip';name='智能交易系统_标准版.zip'}else if(variant==='pro'){file='downloads/智能交易系统_专业版.zip';name='智能交易系统_专业版.zip'}else{file='downloads/智能交易系统_标准版.zip';name='智能交易系统_标准版.zip'}fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download",variant:variant,agent:getAgent()})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href=file;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){var href=this.getAttribute("href");if(href==="#")return;var target=document.querySelector(href);if(target){e.preventDefault();var offset=window.innerWidth<=900?65:18;window.scrollTo({top:target.offsetTop-offset,behavior:"smooth"})}})});
-var catArea=document.getElementById("catArea"),catContainer=document.getElementById("catContainer");
-if(catArea&&catContainer){catArea.addEventListener("click",function(e){var rect=catArea.getBoundingClientRect();var x2=e.clientX-rect.left,y2=e.clientY-rect.top;var cw=120,ch=120;var cx2=Math.min(Math.max(x2,cw/2),rect.width-cw/2),cy2=Math.min(Math.max(y2,ch/2),rect.height-ch/2);catContainer.style.left=cx2+"px";catContainer.style.top=cy2+"px";catContainer.style.transform="translate(-50%,-50%)"})}
 (function(){var cards=document.querySelectorAll(".hero-floating-card");window.addEventListener("scroll",function(){var sy2=window.scrollY;for(var i=0;i<cards.length;i++){var card=cards[i],spd=0.03+i*0.015,yOff=sy2*spd,base;if(card.classList.contains("card-main"))base="translate(-50%,-50%) rotateY(-2deg) rotateX(3deg)";else if(card.classList.contains("card-top"))base="rotateY(4deg) rotateX(-2deg)";else base="rotateY(-3deg) rotateX(2deg)";card.style.transform=base+" translateY("+(-yOff)+"px)"}})})();
 (function(){document.querySelectorAll(".feature-card").forEach(function(card){card.addEventListener("mousemove",function(e){var r=card.getBoundingClientRect();card.style.setProperty("--mx",((e.clientX-r.left)/r.width*100).toFixed(1)+"%");card.style.setProperty("--my",((e.clientY-r.top)/r.height*100).toFixed(1)+"%")});card.addEventListener("mouseleave",function(){card.style.setProperty("--mx","50%");card.style.setProperty("--my","50%")})})})();
     // ===== 代理归因 + 在线激活/下单 =====
@@ -889,20 +862,6 @@ if(catArea&&catContainer){catArea.addEventListener("click",function(e){var rect=
       }catch(e){}
     })();
     function getAgent(){return window.JYT_AGENT||'';}
-    function submitActivate(){
-      var mc=document.getElementById('actMachine').value.trim();
-      var tier=document.getElementById('actTier').value;
-      var msg=document.getElementById('actMsg');var res=document.getElementById('actResult');
-      if(!mc){msg.style.color='#f88';msg.textContent='请填写机器码';return;}
-      msg.style.color='#9fb';msg.textContent='提交中...';res.style.display='none';
-      fetch('/api/issue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({machine_code:mc,tier:tier,agent:getAgent()})})
-        .then(function(r){return r.json();}).then(function(d){
-          if(d.ok&&d.license){res.style.display='block';document.getElementById('actLicense').textContent=d.license;msg.textContent='领取成功';try{navigator.clipboard.writeText(d.license);}catch(e){}}
-          else if(d.ok&&d.need_pay){msg.style.color='#fd8';msg.textContent='已生成订单 '+d.order_id+'：'+d.pay_hint;}
-          else{msg.style.color='#f88';msg.textContent='失败：'+(d.error||'');}
-        }).catch(function(e){msg.style.color='#f88';msg.textContent='网络错误：'+e.message;});
-    }
-    function copyLicense(){var t=document.getElementById('actLicense').textContent;try{navigator.clipboard.writeText(t);}catch(e){}}
     function applyAgent(){
       var code=document.getElementById('agentCode').value.trim();
       var out=document.getElementById('agentLink');
