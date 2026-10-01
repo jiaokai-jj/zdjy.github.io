@@ -117,12 +117,47 @@ async function isMachineLegal(env, mh) {
   try {
     const kv = env && env.STATS;
     if (!kv) return true;
+    const m = String(mh || "").trim();
+    if (!m) return false;
+
+    // ========================================================================
+    // [2026-10-01] 忽略清单(ignore_machines)里的机器【一律放行】。
+    //   甲方要求"我自己的电脑不需要上报" —— 自测机既不该出现在后台名单里,
+    //   也不该因为不在名单里而被判 not_authorized。
+    //   本改动让 ignore_machines 成为"完全透明"的自测机标记:
+    //     不写审计日志 / 不写台账 / 不进白名单 / 不参与封禁 / 不受清退 /
+    //     且这里直接放行 —— 自测机在服务端等于不存在, 但功能一切正常。
+    //   (认证员永远不在 ignore_machines 里, 所以对认证零影响。)
+    // ========================================================================
+    try { if (await isMachineIgnored(env, m)) return true; } catch (e) {}
+
+    // ========================================================================
+    // [2026-10-01 关键修复] 认证评审短码兑换过的机器, 一律视为合法设备。
+    //
+    // 事故: reviewExchange() 兑换成功后会给机器签发授权, 但**没有**成功写进
+    //   legal_machines(实测: 兑换前 8 台, 兑换后仍 8 台, 新机器不在其中;
+    //   而同一个函数里 review_codes 的写入是成功的 —— 具体原因未查明)。
+    //   后果(会让认证再次失败): 认证员激活成功 -> 客户端启动 3 秒后跑
+    //   deferred_authority_check -> /api/verify -> 白名单拒绝 not_authorized
+    //   -> 清空授权并销毁进程 -> 认证员看到"激活完就闪退"(政策 10.4.2 失败)。
+    //
+    // 修法: 不再依赖 legal_machines 的写入 —— 直接以 **review_codes[].machines**
+    //   为准(实测该写入可靠)。这样评审码兑换过的机器天然通过白名单。
+    // ========================================================================
+    try {
+      const codes = safeJSON((await kv.get("review_codes")) || "[]", []);
+      if (Array.isArray(codes)) {
+        for (const c of codes) {
+          if (c && Array.isArray(c.machines) &&
+              c.machines.some(x => String(x || "").trim() === m)) return true;
+        }
+      }
+    } catch (e) { console.error("[isMachineLegal] review_codes", e); }
+
     const raw = await kv.get("legal_machines");
     if (!raw) return true;
     const list = safeJSON(raw, []);
     if (!Array.isArray(list) || !list.length) return true;
-    const m = String(mh || "").trim();
-    if (!m) return false;
     return list.some(x => !!x && String(x).trim() === m);
   } catch (e) {
     console.error("[isMachineLegal]", e);
@@ -131,7 +166,7 @@ async function isMachineLegal(env, mh) {
 }
 
 // v4.0 版本信息
-const CURRENT_VERSION = "5.0.1";
+const CURRENT_VERSION = "5.0.2";
 const DOWNLOAD_URL = "https://www.jyt.cc.cd/";
 
 // 自助领取开关: false=关闭(一律转人工客服, 改回 true 并重新部署可重新开放)。
@@ -697,6 +732,94 @@ async function signTimeTicket(payload, env) {
   return payloadB64 + "." + sigB64;
 }
 
+// ============================================================================
+// [2026-09-30] 认证评审短码兑换 (QM-REV-XXXXXXXX)
+//
+// 背景: 微软认证政策 10.3.1 "App Is Testable" 驳回 —— 我们提供的测试激活码
+//   是【机器码绑定】的, 认证员的电脑机器码与我们假设的不同, 码在他机器上必然失效;
+//   且付费档未激活时主窗口被隐藏, 认证员根本看不到界面 -> "无法测试产品"。
+//
+// 方案: 认证说明框里只放一个**短码**(16 字符, 不会被那个 ~400 字符的框截断);
+//   认证员在激活框输入短码 -> 客户端调本接口 -> 服务端用私钥**现场签发**
+//   一枚【绑定该认证机机器码】的标准激活码 -> 客户端走原有 RSA 验签流程激活。
+//   => 私钥不必长期在线: 认证期间开, 认证一通过立刻 wrangler secret delete PRIVATE_KEY。
+//
+// 安全约束(全部由本函数 + KV 控制):
+//   · 短码本身不含授权, 必须服务端签发才有效 -> 泄露也无法离线伪造
+//   · 短码有**签发窗口期**(KV review_codes[].exp, 默认签发后 10 天)
+//   · 每个短码最多激活 N 台机器(默认 3 台), 超限直接拒绝
+//   · 可随时 revoked=true 一键作废; 认证通过后删 PRIVATE_KEY 即彻底停摆
+//   · 兑换成功会写入设备白名单 legal_machines, 否则随后 /api/verify 会以
+//     not_authorized 拒绝(白名单非空时只放行清单内机器)
+// ============================================================================
+const REVIEW_CODE_RE = /^QM-REV-[A-Za-z0-9]{8}$/;
+
+async function reviewExchange(env, code, machineCode, buildTier) {
+  const kv = env && env.STATS;
+  if (!kv) return { ok: false, error: "server_error", msg: "KV 未配置" };
+  if (!(env && env.PRIVATE_KEY))
+    return { ok: false, error: "server_signing_disabled", msg: "服务端签发已停用(认证窗口已关闭)" };
+  const codes = safeJSON((await kv.get("review_codes")) || "[]", []);
+  if (!Array.isArray(codes) || !codes.length)
+    return { ok: false, error: "review_disabled", msg: "评审码未启用" };
+  const c = String(code || "").trim().toUpperCase();
+  const m = String(machineCode || "").trim();
+  if (!m) return { ok: false, error: "missing_machine", msg: "缺少机器码" };
+  const rec = codes.find(x => String((x && x.code) || "").toUpperCase() === c);
+  if (!rec) return { ok: false, error: "review_invalid", msg: "评审码无效" };
+  if (rec.revoked) return { ok: false, error: "review_revoked", msg: "评审码已作废" };
+  const now = Math.floor(Date.now() / 1000);
+  if (rec.exp && now > rec.exp)
+    return { ok: false, error: "review_expired", msg: "评审码已过签发窗口期" };
+  const machines = Array.isArray(rec.machines) ? rec.machines : [];
+  if (!machines.includes(m)) {
+    const cap = Number(rec.max_machines || 3);
+    if (machines.length >= cap)
+      return { ok: false, error: "review_machine_limit", msg: "该评审码已达激活台数上限(" + cap + " 台)" };
+    machines.push(m);
+  }
+  let tier = String(rec.tier || "auto").toLowerCase();
+  if (tier === "auto") {
+    const bt = String(buildTier || "").trim().toLowerCase();
+    tier = (bt === "flagship" || bt === "premium" || bt === "standard") ? bt : "standard";
+  }
+  const days = Number(rec.days || 15);
+  const built = await buildLicense(m, tier, days, env);
+
+  // ==========================================================================
+  // [2026-10-01 关键修复] 登记进"老客户白名单" loyal_machines
+  //
+  // 事故: /api/verify 第 6g 步有一条合法性判定 —— 授权必须是
+  //   【试用(trial===1)】 或 【永久(exp===0)】 或 【一年(exp-gen>=360天)】,
+  //   否则一律判 "not_longterm (非一年/非试用授权, 判非法)" 并 403 拒绝。
+  //   我们给认证员签的是 **15 天**(既非一年也非试用) -> 兑换虽然成功,
+  //   但客户端启动约 3 秒后跑 deferred_authority_check 调 /api/verify 时被拒
+  //   -> 清空授权 + 销毁进程 -> 认证员看到"激活完就闪退"(政策 10.4.2 失败)。
+  //
+  // 修法: 用现成的 addLoyal() 把该机器登记进 loyal_machines ——
+  //   第 6g 步对白名单内机器【直接豁免】(第 1494 行 _loyal 判定), 不卡天数。
+  //   为什么不用 trial:1 —— 那会触发"试用码一机只能一次"(服务端 6c + 客户端
+  //   都会拦), 认证员重装/重激活就再也进不去。
+  // ==========================================================================
+  try { await addLoyal(env, m, built.payload.lid, tier); }
+  catch (e) { console.error("[reviewExchange] addLoyal", e); }
+
+  try {
+    const legal = safeJSON((await kv.get("legal_machines")) || "[]", []);
+    if (Array.isArray(legal) && !legal.includes(m)) {
+      legal.push(m);
+      await kv.put("legal_machines", JSON.stringify(legal));
+    }
+  } catch (e) { console.error("[reviewExchange] legal_machines", e); }
+  rec.machines = machines;
+  rec.used = Number(rec.used || 0) + 1;
+  rec.last_at = new Date().toISOString();
+  rec.last_machine = m;
+  try { await kv.put("review_codes", JSON.stringify(codes)); } catch (e) { console.error("[reviewExchange] save", e); }
+  try { await recordIssued(env, built.license, { machine: m, tier: tier, exp: built.exp, review_code: c }); } catch (e) {}
+  return { ok: true, license: built.license, payload: built.payload, exp: built.exp, tier: tier, days: days };
+}
+
 async function buildLicense(machineCode, tier, expireDays, env) {
   const now = Math.floor(Date.now() / 1000);
   const exp = expireDays > 0 ? now + expireDays * 86400 : 0;
@@ -715,6 +838,14 @@ async function buildLicense(machineCode, tier, expireDays, env) {
 async function recordIssued(env, license, info) {
   try {
     if (!env || !env.STATS) return;
+    // [2026-10-01] 忽略清单(ignore_machines)里的机器不写台账 ——
+    //   甲方要求"我自己的电脑不需要上报"。原先只有审计日志做了排除,
+    //   issued_licenses / active_license_set 仍会记录自测机, 后台台账被自己的
+    //   测试数据污染。这里一并排除。
+    try {
+      const _mh = String((info && info.mh) || "").trim();
+      if (_mh && await isMachineIgnored(env, _mh)) return;
+    } catch (e) {}
     // 解析 payload 提取真实 lid(原实现取 payload base64 前缀, 与 verify 侧的真实 lid 不一致, 导致账本/活跃集键错乱)
     let realLid = "";
     try {
@@ -849,6 +980,8 @@ function safeJSON(raw, def) {
 async function addLoyal(env, mh, lid, tier) {
   try {
     if (!env || !env.STATS || !mh) return;
+    // [2026-10-01] 忽略清单里的机器不进"老客户白名单" —— 自测机不污染名单。
+    try { if (await isMachineIgnored(env, mh)) return; } catch (e) {}
     const arr = safeJSON(await env.STATS.get("loyal_machines"), []);
     if (!arr.some(x => x.mh === mh)) {
       arr.push({ mh, lid: lid || "", tier: tier || "", ts: Date.now() });
@@ -1003,6 +1136,50 @@ async function killBuildHit(env, machineCode, verStr) {
     if (!_kb) return "";
     const _k = String(machineCode || "");
     if (_k && await isMachineIgnored(env, _k)) return "";
+
+    // ======================================================================
+    // [2026-10-01] 已付费客户豁免(关键)
+    //
+    // 背景: 官网 9/17 那个包(final-7)未激活也能进主界面、按免费档(2笔/天,≤1万)
+    //   天天使用 —— 等于白送免费版。清退办法是把 kill_build 设成 final-8,
+    //   让低于它的旧包被硬性清退(锁交易 + 提示升级)。
+    //
+    // 问题: kill_build 是一刀切, 会把【已经付过费、还装在旧包上的老客户】一起清掉。
+    //   甲方明确要求: 付费客户放过, 只封杀白嫖的。
+    //
+    // 修法: loyal_machines 里是我们【正式签发过授权】的机器(含换机/一年/永久/试用
+    //   推送登记的客户) —— 这些一律豁免清退闸门, 照常使用。
+    //   没进过任何名单(即从未拿到过正式授权)的机器才会被清退。
+    //
+    // 注意: 本豁免只在设置了 kill_build 之后才起作用; 未设置时 killBuildHit 直接
+    //   返回 "", 本分支不会被执行, 对现有客户零影响。
+    // ======================================================================
+    // [2026-10-01 预留] "彻底封杀"模式开关(KV: kill_build_strict = "1")。
+    //   普通模式(默认, 开关未设): loyal_machines 里的【已付费客户】豁免清退 —— 只封杀白嫖的。
+    //   彻底模式(开关 = "1"): 连已付费客户也一起清退, 只豁免
+    //        ① 认证短码兑换过的机器(review_codes[].machines)
+    //        ② ignore_machines(你自己的机器)
+    //     用途: 微软认证通过后, 以"微软认证要求清理旧版本"为由把老包全部下线。
+    //     已付费客户下载安装新版即可继续使用(授权不变, 不用重新激活)。
+    //   ⚠ 默认关闭 —— 不设 kill_build_strict 时本分支不生效, 对现有客户零影响。
+    let _strict = false;
+    try { _strict = String((await env.STATS.get("kill_build_strict")) || "").trim() === "1"; } catch (e) {}
+    if (_k && !_strict) {
+      try { if (await isLoyal(env, _k)) return ""; } catch (e) {}
+    }
+    if (_k && _strict) {
+      // 彻底模式: 只有认证码兑换过的机器放行
+      try {
+        const _codes = safeJSON((await env.STATS.get("review_codes")) || "[]", []);
+        if (Array.isArray(_codes)) {
+          for (const c of _codes) {
+            if (c && Array.isArray(c.machines) &&
+                c.machines.some(x => String(x || "").trim() === _k)) return "";
+          }
+        }
+      } catch (e) {}
+    }
+
     const _n = verToInt(verStr);
     const _kn = verToInt(_kb);
     if (_n < 0 || _kn < 0) return "";
@@ -1229,6 +1406,21 @@ export default {
         const body = await request.json();
         const licenseKey = body.license || "";
         const machineCode = body.machine_code || "";
+        // ====================================================================
+        // [2026-09-30] 认证评审短码: 必须放在【设备白名单之前】
+        //   认证机此刻还不在 legal_machines 里, 若先过白名单会被 not_authorized
+        //   直接拒掉, 根本走不到兑换逻辑。兑换成功后由 reviewExchange() 负责
+        //   把该机器写入白名单。
+        // ====================================================================
+        if (REVIEW_CODE_RE.test(String(licenseKey).trim())) {
+          const _rv = await reviewExchange(env, licenseKey, machineCode, body.build_tier || "");
+          if (!_rv.ok) {
+            _log("", machineCode, "fail", "review:" + _rv.error);
+            return jsonResp({ ok: false, error: _rv.error, msg: _rv.msg || "评审码兑换失败" }, 403);
+          }
+          _log(_rv.payload.lid, machineCode, "ok", "review_exchange:" + String(licenseKey).trim().toUpperCase());
+          return jsonResp({ ok: true, data: { license: _rv.license, tier: _rv.tier, exp: _rv.exp, days: _rv.days } });
+        }
         // [白名单闸门] 不在已签发设备清单内 -> 未授权（签发新机器前一律拒绝）
         if (!(await isMachineLegal(env, machineCode))) {
           _log("", machineCode, "fail", "not_authorized");
@@ -2473,7 +2665,45 @@ export default {
             agent: (body.agent || "").toString().slice(0, 40),
             source: "local",
           });
-          return jsonResp({ ok: true, registered: true, lid: payload.lid || "", mh: payload.mh || "", tier: payload.tier || "", exp: payload.exp || 0 });
+
+          // ==================================================================
+          // [2026-10-01 关键修复] 同时登记进"老客户白名单" loyal_machines。
+          //
+          // 原因: /api/verify 第 6g 步规定 —— 授权必须是
+          //   【试用(trial===1)】或【永久(exp===0)】或【一年(exp-gen>=360天)】,
+          //   否则判 "not_longterm (非一年/非试用授权, 判非法)" 并 403。
+          //   白名单(loyal_machines)内的机器【豁免】这条判定。
+          //
+          // 症状: 我们主动签发的【短期码】(例如给客户的 3 天体验码)既不是一年也不是
+          //   试用 -> 客户激活后联网复核被 403 not_longterm 拒。客户端不清授权、不闪退
+          //   (已确认 9/12 版 deferred_authority_check 是温和的), 但拿不到令牌与 24h
+          //   能力票据, 到期后会被静默锁定 -> 客户体验受损。
+          //
+          // 修法: 凡是通过本接口(本地注册机签发并推送)登记的授权, 一律把机器加入
+          //   loyal_machines —— 这是我们【有意为之】的授权期限, 应当豁免天数门槛。
+          //   只影响本接口登记的机器, 不影响其它判定。
+          // ==================================================================
+          try {
+            if (payload.mh) {
+              // ① 免 not_longterm 判定
+              await addLoyal(env, payload.mh, payload.lid || "", payload.tier || "");
+              // ② 进设备白名单(否则 /api/verify 第一道 isMachineLegal 就判 not_authorized)
+              //    只增不减: 已有白名单原样保留, 新机器追加。
+              //    [2026-10-01] 忽略清单里的机器(自己的自测机)不写白名单 ——
+              //    甲方要求"我自己的电脑不需要上报", 自测机不该出现在后台名单里。
+              let _skipLegal = false;
+              try { _skipLegal = await isMachineIgnored(env, payload.mh); } catch (e) {}
+              if (!_skipLegal) {
+                const _legal = safeJSON((await env.STATS.get("legal_machines")) || "[]", []);
+                if (Array.isArray(_legal) && !_legal.includes(payload.mh)) {
+                  _legal.push(payload.mh);
+                  await env.STATS.put("legal_machines", JSON.stringify(_legal));
+                }
+              }
+            }
+          } catch (e) { console.error("[issue/register] whitelist", e); }
+
+          return jsonResp({ ok: true, registered: true, loyal: true, lid: payload.lid || "", mh: payload.mh || "", tier: payload.tier || "", exp: payload.exp || 0 });
         } catch (e) { return jsonResp({ ok: false, error: String((e && e.message) || e) }, 500); }
       }
 
