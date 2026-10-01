@@ -1421,6 +1421,37 @@ export default {
           _log(_rv.payload.lid, machineCode, "ok", "review_exchange:" + String(licenseKey).trim().toUpperCase());
           return jsonResp({ ok: true, data: { license: _rv.license, tier: _rv.tier, exp: _rv.exp, days: _rv.days } });
         }
+        // ====================================================================
+        // [2026-10-01 关键修复] 清退闸门必须放在【设备白名单之前】!
+        //
+        // 事故: 原顺序是  短码兑换 -> 白名单 -> 清退闸门。
+        //   而真正的白嫖客户【从来不在 legal_machines 里】(他们从未激活过,
+        //   旧包那个漏洞让他们不激活也能用)。于是他们在白名单这一步就被
+        //   not_authorized 挡掉, 永远走不到清退闸门 —— 而旧客户端对
+        //   not_authorized 是"温和放行"的, 结果: 清退对他们完全无效。
+        //
+        // 修法: 把清退闸门提到白名单之前。这样"不在任何名单里 + 跑旧包"的机器
+        //   会明确收到 version_outdated(build_retired), 旧客户端对此会
+        //   锁定自动交易与条件单并弹出"版本已停用, 请下载最新版"。
+        //
+        // 认证零影响: 短码兑换在上面就已经 return 了, 走不到这里。
+        // 付费客户零影响: killBuildHit 内部对 loyal_machines 有豁免。
+        // 自测机零影响: killBuildHit 内部对 ignore_machines 有豁免。
+        // ====================================================================
+        {
+          const _kbBodyVer = (body.ver || "").toString().trim();
+          const _kbHit = await killBuildHit(env, machineCode, _kbBodyVer);
+          if (_kbHit) {
+            _log("", machineCode, "fail", "version_outdated");
+            return jsonResp({
+              ok: false,
+              error: "version_outdated",
+              reason: "build_retired",
+              min_required: _kbHit,
+              msg: "当前版本已停用，请到 www.jyt.cc.cd 下载最新版（更新后授权自动保留，无需重新激活）"
+            }, 403);
+          }
+        }
         // [白名单闸门] 不在已签发设备清单内 -> 未授权（签发新机器前一律拒绝）
         if (!(await isMachineLegal(env, machineCode))) {
           _log("", machineCode, "fail", "not_authorized");
@@ -1724,8 +1755,25 @@ export default {
         const body = await request.json();
         const licenseKey = body.license || "";
         const machineCode = body.machine_code || "";
-        // [白名单闸门] 不在已签发设备清单内 -> 未授权（签发新机器前一律拒绝）
-        if (!(await isMachineLegal(env, machineCode))) {
+        // ================================================================
+        // [2026-10-01 关键修复] 清退闸门必须放在白名单【之前】, 且命中时跳过白名单。
+        //
+        // 为什么: 真正的白嫖机器从来没激活过, 根本不在 legal_machines 里。
+        //   若白名单在前面, 它们会被 not_authorized 挡掉 -> 拿不到票据 ->
+        //   客户端 _server_perm 保持旧值 -> can_trade 收不回来 -> 手动买卖照做。
+        //   命中清退时跳过白名单, 是为了能把"权限全空的票据"发到它们手上,
+        //   旧版 get_perm() 与本地权限做 AND 后 can_trade 变 false, 手动交易才真被锁。
+        //   (能走到这里说明它没被 loyal/ignore 豁免, 也确实是低于 kill_build 的旧版)
+        // ================================================================
+        let _tkKilled = "";
+        { const _kb = await killBuildHit(env, machineCode, (body.ver || "").toString().trim());
+          if (_kb) {
+            _tkKilled = _kb;
+            _log("", machineCode, "fail", "version_outdated(ticket-perms-revoked)");
+          } }
+
+        // [白名单闸门] 不在已签发设备清单内 -> 未授权（清退命中的机器跳过此关）
+        if (!_tkKilled && !(await isMachineLegal(env, machineCode))) {
           _log("", machineCode, "fail", "not_authorized");
           return jsonResp({ ok: false, error: "not_authorized", msg: "该设备未在授权清单内，请联系客服(www.jyt.cc.cd)" }, 403);
         }
@@ -1752,12 +1800,7 @@ export default {
             _log("", machineCode, "fail", "version_outdated");
             return jsonResp({ ok: false, error: "version_outdated", reason: "downgrade_blocked", min_required: "final-" + _fl }, 403);
           } }
-        // 全局清退闸门: 低于 kill_build 一律硬封
-        { const _kb = await killBuildHit(env, machineCode, _clientVer);
-          if (_kb) {
-            _log("", machineCode, "fail", "version_outdated");
-            return jsonResp({ ok: false, error: "version_outdated", reason: "build_retired", min_required: _kb }, 403);
-          } }
+        // 清退命中结果已在上面算好(_tkKilled), 此处不再重复查询
         if (_minBuild) {
           // [2026-09-11 放宽] 缺 ver 不再吊销：老版客户端可能不上报 ver，会误杀"我签发的合法客户"。
           // 仅当客户端明确上报了 ver 且低于 min_build 时，才提示版本过旧。
@@ -1837,9 +1880,33 @@ export default {
           } catch (e) { console.error("[ticket-transfer]", e); }
         }
 
+        // ====================================================================
+        // [2026-10-01 关键修复] 版本清退: 命中清退闸门的客户端, 票据里把权限全部收掉。
+        //
+        // 为什么必须在这里做:
+        //   旧客户端(final-7)收到 /api/verify 的 version_outdated 后, 只会
+        //   冻结【自动交易】与【条件单】(见旧版 main_v3 的 grace_locked 闸门),
+        //   手动买入/卖出【完全不受影响】—— 界面也照常打开。
+        //   唯一能连手动交易一起收掉的通道是"服务端权限": 旧版 license.py 的
+        //   get_perm() 会把本地权限与时间锚票据里的 perms 做与运算
+        //       b[can_trade] = b[can_trade] and _server_perm[can_trade]
+        //   而 _server_perm 正是从本端点的 timeTicket.perms 读来的。
+        //   所以: 命中清退 -> 下发一张权限全 0 的票据(票据本身照发, 否则客户端
+        //   读不到新 perms, can_trade 不会被收回)。
+        //
+        // 认证/付费客户零影响: killBuildHit 内部已豁免 review_codes 与 loyal_machines。
+        // ====================================================================
+        // 清退命中结果已在上面算好(_tkKilled), 此处不重复查询
+
         // 颁发 24 小时能力票据(HMAC, 密钥=adminKey, 与令牌同源)
         const tier = payload.tier || payload.version || "trial";
-        const tktPayload = { lid, tier, mh: machineCode, iat: now, exp: now + 86400, cap: 1 };
+        const tktPayload = {
+          lid, tier, mh: machineCode, iat: now, exp: now + 86400, cap: 1,
+          // 命中清退闸门 -> 能力票据里也把权限收掉(双保险)
+          perms: _tkKilled
+            ? { can_trade: false, cond_order: false, risk_control: false, max_buys: 0, max_shares: 0 }
+            : permsForTier(tier),
+        };
         const ticket = await generateToken(tktPayload, await getTicketKey(env));
 
         // P0-2 补全: 与 /api/verify 同源下发 RSA 签名的时间锚票据(客户端用内置 _RSA_PUB_TT 验签)。
@@ -1848,7 +1915,12 @@ export default {
           timeTicket = await signTimeTicket({
             iat: now, lid: lid, mh: machineCode,
             ver: (payload.ver != null ? String(payload.ver) : ((body.ver || "").toString().trim())) || "",
-            cap: 1, perms: permsForTier(tier),
+            cap: 1,
+            perms: _tkKilled
+              ? { can_trade: false, cond_order: false, risk_control: false,
+                  daban: false, daban_manual: false, max_buys: 0, max_shares: 0 }
+              : permsForTier(tier),
+            revoked_build: _tkKilled || undefined,
           }, env);
         } catch (e) {
           console.error("[time_ticket:ticket]", e);
