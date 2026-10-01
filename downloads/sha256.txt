@@ -1,11 +1,11 @@
 ﻿# 权眸智能交易系统 下载包校验值
-# 生成时间 2026-10-01 15:19:12
+# 生成时间 2026-10-01 16:12:17
 # 校验方式：Windows 终端执行  certutil -hashfile "文件名" SHA256
 
 智能交易系统_标准版.zip
-SHA256: ebc9838caaf75f8cd8d7ff9fc58b9f0eb036d2c3fa18fea96cf62f96e5a0e896
-大小  : 29.2 MB (exe 约 30.0 MB)
+SHA256: f70398832dd7b56e271d7349e2baeed7ff8c6b42efd55b5b0ecc91ce0fe888c0
+大小  : 29.1 MB (exe 约 29.9 MB)
 
 智能交易系统_专业版.zip
-SHA256: e4d7e79412c55f4eca9d17b63fad1d6544053a7869006a71d9e34a2a5a9bc00c
-大小  : 30.8 MB (exe 约 31.6 MB)
+SHA256: 71a48504efef9dc01a59427f19272796c5e8a04696f4a5b857644c4046335122
+大小  : 29.7 MB (exe 约 30.5 MB)
