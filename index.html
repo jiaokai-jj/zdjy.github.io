@@ -576,10 +576,10 @@
                                 <div class="changelog-panel" id="changelogPanel">
                     <h4>本次更新要点 <span class="version-tag">v5.0.3</span></h4>
                     <ul>
-                        <li>持仓读取不再依赖复制，告别验证码弹窗，获取更快更稳</li>
-                        <li>成交标的自动加入自选股，并可同步到通达信自选</li>
-                        <li>止损 / 风控状态实时同步，杜绝重复下单与误判</li>
-                        <li>启动速度与界面细节全面优化，日志分级更易读</li>
+                        <li>新增个股止损监控：可单独隔离，自由排除任意不需要监控的目标个股</li>
+                        <li>大盘指数打分机制转接同花顺公开免费行情，行情数据更稳定</li>
+                        <li>高分屏全面适配：完美支持 250% 缩放下完整显示，界面不再过小</li>
+                        <li>专业版条件单模块修复完整加载 + 单日/单股买入次数硬上限防封号</li>
                     </ul>
                     <div style="margin-top:12px;text-align:center"><a href="#changelog" onclick="setTimeout(function(){changelogPanel.classList.remove('show');versionBadge.classList.remove('open')},200)" style="font-size:.82rem;color:#7aa8ff">查看完整更新日志 ↓</a></div>
                 </div>
@@ -620,8 +620,36 @@
                     <div class="upd-item">
                         <div class="upd-head">
                             <span class="upd-ver">v5.0.3</span>
+                            <span class="upd-date">2026-10-02</span>
+                            <span class="upd-tag">强烈推荐</span>
+                        </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">风控与止损</div>
+                        <ul class="upd-list">
+                            <li>新增个股止损监控：可单独隔离，自由排除任意不需要监控的目标个股，监控更精准</li>
+                            <li>止损监控状态实时同步，刷新后不再误报持仓已变</li>
+                        </ul>
+                    </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">行情与适配</div>
+                        <ul class="upd-list">
+                            <li>大盘指数打分机制转接同花顺公开免费行情，行情数据更稳定</li>
+                            <li>高分屏全面适配：完美支持 250% 缩放下完整显示，界面不再过小</li>
+                        </ul>
+                    </div>
+                    <div class="upd-group">
+                        <div class="upd-gtitle">专业版与交易</div>
+                        <ul class="upd-list">
+                            <li>专业版条件单模块修复：完整加载，条件单可正常创建与监控</li>
+                            <li>风控强化：单日 / 单股买入次数硬上限，有效防止异常交易</li>
+                            <li>购买与激活流程优化，开通更稳定</li>
+                        </ul>
+                    </div>
+                    </div>
+                    <div class="upd-item">
+                        <div class="upd-head">
+                            <span class="upd-ver">v5.0.2</span>
                             <span class="upd-date">2026-09-12</span>
-                            <span class="upd-tag">推荐更新</span>
                         </div>
                     <div class="upd-group">
                         <div class="upd-gtitle">持仓与数据</div>
