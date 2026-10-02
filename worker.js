@@ -166,7 +166,7 @@ async function isMachineLegal(env, mh) {
 }
 
 // v4.0 版本信息
-const CURRENT_VERSION = "5.0.2";
+const CURRENT_VERSION = "5.0.3";
 const DOWNLOAD_URL = "https://www.jyt.cc.cd/";
 
 // 自助领取开关: false=关闭(一律转人工客服, 改回 true 并重新部署可重新开放)。
