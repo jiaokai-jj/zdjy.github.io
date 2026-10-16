@@ -322,7 +322,7 @@
         </header>
         <div class="mobile-nav-overlay" id="mobileNavOverlay">
             <a href="#hero">首页</a><a href="#features">核心功能</a><a href="#guide">使用指南</a>
-            <a href="#video">视频教程</a><a href="#pricing">版本价格</a><a href="#download">下载</a><a href="#changelog">更新日志</a><a href="#activate">领取</a>
+            <a href="#video">视频教程</a><a href="#pricing">版本价格</a><a href="#download">下载(暂关)</a><a href="#changelog">更新日志</a><a href="#activate">领取</a>
         </div>
         <main class="main-content">
             <div class="index-bar" id="indexBar">
@@ -337,7 +337,7 @@
                     <h1>短线智能<br><span class="gradient-text">交易系统</span></h1>
                     <p>让AI为您捕捉每一个交易机会。全自动智能分析、毫秒级极速下单、严格风险控制，助您在短线交易中抢占先机。</p>
                     <div style="display:flex;gap:16px;margin-top:20px">
-                        <a href="#download" class="btn btn-primary">立即下载</a>
+                        <a href="#download" class="btn btn-outline">下载专区(暂未开放)</a>
                         <button class="btn btn-outline" onclick="document.getElementById('video').scrollIntoView({behavior:'smooth'})">观看演示</button>
                     </div>
                     <div class="hero-stats">
@@ -480,7 +480,7 @@
             <section class="section" id="download">
                 <div class="section-title-wrapper reveal">
                     <span class="version-tag">下载专区</span>
-                    <span class="section-title gradient-text-cyan">下载压缩包，解压即可运行</span>
+                    <span class="section-title gradient-text-cyan">下载专区暂时关闭，敬请期待</span>
                     <span class="section-title-decor"></span>
                 </div>
                 <div class="download-inner reveal">
@@ -497,13 +497,13 @@
                                     <div class="dl-card-head"><span class="dl-name">✅ 标准版</span><span class="dl-badge">稳定推荐</span></div>
                                     <p class="dl-desc">v5.0.3 标准版，核心交易全功能，适合日常实盘使用。</p>
                                     <p style="margin:6px 0 10px;font-size:.66rem;color:var(--text-secondary);word-break:break-all">&#128274; SHA256 <code id="sha-standard" style="color:#7aa8ff">d504941a3cf34546bab7b99b890dcf1770c4294d46b4f7ac54856e7e62cb1a5f</code></p>
-                                    <a href="#" class="btn btn-primary" onclick="handleDownload('standard');return false">下载标准版 (约31MB)</a>
+                                    <a href="#" class="btn btn-outline" onclick="handleDownload('standard');return false" style="opacity:.55;cursor:not-allowed">标准版 · 下载暂未开放</a>
                                 </div>
                                 <div class="dl-card dl-beta">
                                     <div class="dl-card-head"><span class="dl-name">🚀 专业版</span><span class="dl-badge">功能更强</span></div>
                                     <p class="dl-desc">v5.0.3 专业版，含风控与条件单，适合进阶用户。</p>
                                     <p style="margin:6px 0 10px;font-size:.66rem;color:var(--text-secondary);word-break:break-all">&#128274; SHA256 <code id="sha-pro" style="color:#7aa8ff">7bae4406c6c76daacd95b9466d84555d6176c7fea1d82dac3ed3425655e3f5f8</code></p>
-                                    <a href="#" class="btn btn-outline" onclick="handleDownload('pro');return false">下载专业版 (约31MB)</a>
+                                    <a href="#" class="btn btn-outline" onclick="handleDownload('pro');return false" style="opacity:.55;cursor:not-allowed">专业版 · 下载暂未开放</a>
                                 </div>
                             </div>
                             <details style="margin-top:10px;text-align:left">
@@ -717,7 +717,7 @@
                     </div>
                     </div>
                     <div style="margin-top:22px;text-align:center">
-                        <a href="index.html#download" class="btn btn-primary">前往下载 v5.0.3</a>
+                        <a href="index.html#download" class="btn btn-outline">前往下载专区</a>
                         <a href="updates.html" class="btn btn-outline" style="margin-left:10px">在独立页面打开</a>
                     </div>
                 </div>
@@ -906,8 +906,8 @@ var chatWindow=document.getElementById("chatWindow"),chatMessages=document.getEl
 function toggleChat(){chatOpen=!chatOpen;chatWindow.classList.toggle("open",chatOpen);if(chatOpen)setTimeout(function(){chatInput.focus()},300)}
 function sendMessage(){var text=chatInput.value.trim();if(!text)return;addBubble(text,"user");chatInput.value="";setTimeout(function(){addBubble(getReply(text),"bot")},500)}
 function addBubble(msg,type){var d=document.createElement("div");d.className="chat-bubble "+type;d.textContent=msg;chatMessages.appendChild(d);chatMessages.scrollTop=chatMessages.scrollHeight}
-function getReply(msg){if(msg.indexOf("下载")!==-1)return "请前往下载专区获取压缩包。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥888/年，专业版(推荐)¥1888/年。均为年度订阅。软件为虚拟产品，一经售出概不退款，建议先申请 7 天免费试用。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助申请7天免费试用高级版（全功能），或添加客服QQ 290144665 由客服发放正式激活码。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
-function handleDownload(variant){var file,name;if(variant==='standard'){file='downloads/智能交易系统_标准版.zip?v=5.0.3';name='智能交易系统_标准版.zip'}else if(variant==='pro'){file='downloads/智能交易系统_专业版.zip?v=5.0.3';name='智能交易系统_专业版.zip'}else{file='downloads/智能交易系统_标准版.zip?v=5.0.3';name='智能交易系统_标准版.zip'}fetch("/api/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"download",variant:variant,agent:getAgent()})}).then(function(r){return r.json()}).then(function(d){if(d&&d.count!=null){document.querySelectorAll(".js-dl").forEach(function(el){el.textContent=d.count})}}).catch(function(){});var a=document.createElement("a");a.href=file;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a)}
+function getReply(msg){if(msg.indexOf("下载")!==-1)return "下载专区暂时关闭，暂不提供压缩包下载。请添加客服 QQ 290144665 获取安装方式。";if(msg.indexOf("价格")!==-1)return "体验版¥298/年，标准版¥888/年，专业版(推荐)¥1888/年。均为年度订阅。软件为虚拟产品，一经售出概不退款，建议先申请 7 天免费试用。";if(msg.indexOf("激活")!==-1)return "运行软件后生成硬件注册码，可在本页“在线领取激活码”自助申请7天免费试用高级版（全功能），或添加客服QQ 290144665 由客服发放正式激活码。";if(msg.indexOf("人工")!==-1||msg.indexOf("客服")!==-1||msg.indexOf("转人工")!==-1||msg.indexOf("联系")!==-1)return "请添加客服QQ：290144665，人工客服为您解答。";return "抱歉，这个问题我暂时无法回答。请添加客服QQ：290144665，人工客服会为您详细解答～"}
+function handleDownload(variant){alert("下载专区暂时关闭，暂不提供压缩包下载。\n\n如需安装，请添加客服 QQ 290144665 获取安装方式。");return false}
 document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){var href=this.getAttribute("href");if(href==="#")return;var target=document.querySelector(href);if(target){e.preventDefault();var offset=window.innerWidth<=900?65:18;window.scrollTo({top:target.offsetTop-offset,behavior:"smooth"})}})});
 (function(){var cards=document.querySelectorAll(".hero-floating-card");window.addEventListener("scroll",function(){var sy2=window.scrollY;for(var i=0;i<cards.length;i++){var card=cards[i],spd=0.03+i*0.015,yOff=sy2*spd,base;if(card.classList.contains("card-main"))base="translate(-50%,-50%) rotateY(-2deg) rotateX(3deg)";else if(card.classList.contains("card-top"))base="rotateY(4deg) rotateX(-2deg)";else base="rotateY(-3deg) rotateX(2deg)";card.style.transform=base+" translateY("+(-yOff)+"px)"}})})();
 (function(){document.querySelectorAll(".feature-card").forEach(function(card){card.addEventListener("mousemove",function(e){var r=card.getBoundingClientRect();card.style.setProperty("--mx",((e.clientX-r.left)/r.width*100).toFixed(1)+"%");card.style.setProperty("--my",((e.clientY-r.top)/r.height*100).toFixed(1)+"%")});card.addEventListener("mouseleave",function(){card.style.setProperty("--mx","50%");card.style.setProperty("--my","50%")})})})();
